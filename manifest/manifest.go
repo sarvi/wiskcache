@@ -1,11 +1,11 @@
-package utils
+package manifest
 
 import (
-    "fmt"
-    "path/filepath"
-    "errors"
     "os"
     "io"
+    "fmt"
+    "errors"
+    "utils"
     "lukechampine.com/blake3"
 )
 
@@ -14,34 +14,8 @@ type FileManifest struct{
     outputFile map[string]string
 }
 
-func Exists(name string) bool {
-    if _, err := os.Stat(name); err != nil {
-        if os.IsNotExist(err) {
-            return false
-        }
-    }
-    return true
-}
-
-func RelativePath(basePath string, tgtPath string) (string, error) {
-    var relpath = tgtPath
-    var err error
-    if filepath.IsAbs(tgtPath) {
-        relpath, err = filepath.Rel(basePath, tgtPath)
-        if err != nil{
-            return relpath, err
-        }
-    }
-    // check if path exists 
-    fullpath := filepath.Join(basePath, relpath)
-    if !Exists(fullpath){ 
-        return "", errors.New(fmt.Sprintf("%v does not exist", fullpath))
-    }
-    return relpath, nil
-}
-
 func GetHash(file string)(string, error){
-    if Exists(file){
+    if utils.Exists(file){
         f, err := os.Open(file)
         if err != nil {
             return "", err
@@ -58,7 +32,7 @@ func GetHash(file string)(string, error){
 }
 
 func MatchHash(file string, hash string)(string, error){
-    if Exists(file){
+    if utils.Exists(file){
         new_hash, err := GetHash(file) 
         if err != nil {
             return "", err
