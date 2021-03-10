@@ -8,6 +8,8 @@ replace cache => ./cache
 
 replace exec => ./exec
 
+replace whash => ./whash
+
 replace manifest => ./manifest
 
 require (
@@ -15,4 +17,5 @@ require (
 	exec v0.0.0-00010101000000-000000000000
 	manifest v0.0.0-00010101000000-000000000000
 	utils v0.0.0-00010101000000-000000000000
+	whash v0.0.0-00010101000000-000000000000
 )
