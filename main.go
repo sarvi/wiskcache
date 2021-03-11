@@ -41,6 +41,24 @@ func main() {
 	} else {
 		fmt.Println("No")
 	}
+
+	var ConfigValues config.Config
+	var CommandtoExec string
+
+	ConfigValues, CommandtoExec = argparser.ArgParse()
+	ConfigValues.ToolIdx = config.ToolMatcher(ConfigValues, CommandtoExec)
+
+	fmt.Println("Wiskcache Mode -- ", ConfigValues.Mode)
+	fmt.Println("Wiskcache Base Dir -- ", ConfigValues.BaseDir)
+	fmt.Println("Common Envars from config file -- ", ConfigValues.Envars)
+	fmt.Println("Command to be executed -- ", CommandtoExec)
+	if ConfigValues.ToolIdx != -1 {
+		fmt.Println("Tool Match Found")
+		fmt.Println("Tool Specific Envars -- ", ConfigValues.Tools[ConfigValues.ToolIdx])
+	} else {
+		fmt.Println("Tool Match Not Found")
+	}
+
 	cache.Greet()
 	exec.Greet()
 	config.Greet()
