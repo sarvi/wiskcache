@@ -2,11 +2,12 @@ package main
 
 import (
 	"cache"
+	"config"
 	"exec"
 	"fmt"
-	"whash"
 	"manifest"
 	"utils"
+	"whash"
 )
 
 func main() {
@@ -19,6 +20,7 @@ func main() {
 	cache.Greet()
 	exec.Greet()
 	whash.Greet()
+	config.Greet()
 	hash, err := manifest.GetHash("main.go")
 	if err != nil {
 		fmt.Println(err)
