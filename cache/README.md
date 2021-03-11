@@ -6,7 +6,7 @@ go test -v cache.go cache_test.go
 
 func FindManifest(config config.Config, cmdhash string, infile []string)(string, error)
 func Create(config config.Config, infile []string, outfile []string, manifestfile string)(error)
-func CopyOut(config config.Config, infile []string, outfile []string, manifestfile string)(error)
+func CopyOut(config config.Config, manifestfile string)(error)
 
 infiles and outfiles are relative path to config.BaseDir
 e.g.
