@@ -14,6 +14,8 @@ replace whash => ./whash
 
 replace manifest => ./manifest
 
+replace argparser => ./argparser
+
 require (
 	cache v0.0.0-00010101000000-000000000000
 	config v0.0.0-00010101000000-000000000000
@@ -21,4 +23,6 @@ require (
 	manifest v0.0.0-00010101000000-000000000000
 	utils v0.0.0-00010101000000-000000000000
 	whash v0.0.0-00010101000000-000000000000
+	argparser v0.0.0-00010101000000-000000000000
+	gopkg.in/yaml.v2 v2.4.0
 )

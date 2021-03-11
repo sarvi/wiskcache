@@ -1,6 +1,7 @@
 package main
 
 import (
+	"argparser"
 	"cache"
 	"config"
 	"exec"
@@ -19,6 +20,7 @@ func main() {
 	cache.Greet()
 	exec.Greet()
 	config.Greet()
+	argparser.Greet()
 	hash, err := manifest.GetHash("main.go")
 	if err != nil {
 		fmt.Println(err)
