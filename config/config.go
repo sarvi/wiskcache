@@ -24,31 +24,25 @@ type Config struct {
 	Tools   []Tool   `yaml:"Tool"`
 }
 
-//Greet function for testing
-func Greet() {
-	fmt.Println("Hello World Config!")
-}
-
 //Parseconfig function to parse the config file
-func Parseconfig(InputconfigFile string) Config {
+func Parseconfig(InputconfigFile string) (ConfigValues Config) {
 	ConfigFile, err := ioutil.ReadFile(InputconfigFile)
 	if err != nil {
 		fmt.Printf("Error reading Wiskcache configure file: %s\n", err)
 	}
-	var ConfigValues Config
 	err = yaml.Unmarshal(ConfigFile, &ConfigValues)
 	if err != nil {
 		fmt.Printf("Error parsing Wiskcache configure file: %s\n", err)
 	}
-	return ConfigValues
+	return
 }
 
 //ToolMatcher fuction to match the Tool name with the Tool information in config file
-func ToolMatcher(ConfigValues Config, CommandLine string) int {
+func ToolMatcher(ConfigValues Config, CommandLine string) (idx int) {
 
 	var matched bool
 	var err error
-	var idx int = -1
+	idx = -1
 	var Toolsno int = len(ConfigValues.Tools)
 	var Toolname string = strings.Split(CommandLine, " ")[0]
 	for i := 0; i < Toolsno; i++ {
@@ -58,5 +52,5 @@ func ToolMatcher(ConfigValues Config, CommandLine string) int {
 			break
 		}
 	}
-	return idx
+	return
 }
