@@ -10,6 +10,7 @@ type Tool struct {
 // declaring a student struct
 type Config struct {
 	// declaring struct variables
+	BaseDir string
 	Envars  []string
 	Tools   []Tool
 	ToolIdx int

@@ -7,10 +7,13 @@ import (
 	"lukechampine.com/blake3"
 )
 
-// Dummy
-func Greet() {
-	fmt.Println("Hello World Whash!")
-}
+// func cmdnormalize(c config.Config, cmd []string) []string {
+// 	rv := []string
+// 	for _, p := range cmd {
+// 		p := strings.ReplaceAll(p, c.BaseDir, "./")
+// 		rv :=
+// 	}
+// }
 
 func cmdhash(c config.Config, env map[string]string, cmd []string) (string, error) {
 	h := blake3.New(32, nil)
