@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+        "utils"
+        "path/filepath"
 )
 
 func jsonlist(json string) string {
@@ -47,6 +49,10 @@ func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, log
 	logfile = fmt.Sprintf("/tmp/wisktrack/wiskcachecmdrun.%s.log", cmdhash)
 	trackfile := fmt.Sprintf("/tmp/wisktrack/wisktrack.%s.file", cmdhash)
 	os.Remove(trackfile)
+        if !utils.Exists(filepath.Dir(logfile)){
+            os.MkdirAll(filepath.Dir(logfile), 0775)
+        }
+
 	out, err := os.Create(logfile)
 	if err != nil {
 		panic(err)
