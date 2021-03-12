@@ -1,4 +1,3 @@
-ToolIdx: -1
 Mode: readwrite
 BaseDir: /default/base/dir
 CacheBaseDir: /nfs/location/cache
