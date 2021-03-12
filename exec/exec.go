@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
-        "utils"
-        "path/filepath"
+	"utils"
 )
 
 func jsonlist(json string) string {
@@ -49,9 +49,9 @@ func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, log
 	logfile = fmt.Sprintf("/tmp/wisktrack/wiskcachecmdrun.%s.log", cmdhash)
 	trackfile := fmt.Sprintf("/tmp/wisktrack/wisktrack.%s.file", cmdhash)
 	os.Remove(trackfile)
-        if !utils.Exists(filepath.Dir(logfile)){
-            os.MkdirAll(filepath.Dir(logfile), 0775)
-        }
+	if !utils.Exists(filepath.Dir(logfile)) {
+		os.MkdirAll(filepath.Dir(logfile), 0775)
+	}
 
 	out, err := os.Create(logfile)
 	if err != nil {
@@ -86,7 +86,7 @@ func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, log
 	exitcode = 0
 	infiles, outfiles = ParseWiskTrackFile(trackfile)
 	fmt.Println("Run Logfile: ", logfile)
-	fmt.Println("Run Outfiles: ", infiles)
-	fmt.Println("Run Trackfile: ", outfiles)
+	fmt.Println("Run Infiles: ", infiles)
+	fmt.Println("Run Outfile: ", outfiles)
 	return
 }
