@@ -16,8 +16,9 @@ func Greet() {
     fmt.Println("Hello World Cache!")
 }
 
-func FindManifest(config config.Config, cmdhash string, infile []string)(string, error){
+func FindManifest(config config.Config, cmdhash string, inFile []string)(string, error){
     // return manifestFile which could exist or not
+    infile, _ := utils.ConverFilesToRelativePath(config, inFile)
     cacheDir := filepath.Join(config.CacheBaseDir, cmdhash)
     if !utils.Exists(cacheDir){
         err := os.MkdirAll(cacheDir, 0775)
@@ -60,11 +61,13 @@ func FindManifest(config config.Config, cmdhash string, infile []string)(string,
     return "", nil
 }
 
-func Create(config config.Config, infile []string, outfile []string, manifestfile string)(error){
+func Create(config config.Config, inFile []string, outFile []string, manifestfile string)(error){
     // create manifest file and copy outputfiles to cache
 
     // manifestfile is retrieved from FindManifest
     // create manifest file
+    infile, _ := utils.ConverFilesToRelativePath(config, inFile)
+    outfile, _ := utils.ConverFilesToRelativePath(config, outFile)
     err := manifest.SaveManifestFile(config, infile, outfile, manifestfile)
     if err != nil{
         return err
@@ -121,4 +124,17 @@ func CopyOut(config config.Config, manifestFile string)(error){
     }
     return nil
 
+}
+
+func Verify(config config.Config, manifestFile string)(bool){
+    manifestdata, _ := manifest.ReadManifest(manifestFile)
+    matched := true
+    for outputFile, hash := range manifestdata.OutputFile{
+        hashOfFileInWorkspace, _ := manifest.GetHash(filepath.Join(config.BaseDir, outputFile))
+        if hash != hashOfFileInWorkspace{
+            fmt.Printf("%v is not matched\n", outputFile)
+            matched = false 
+        }
+    }
+    return matched
 }

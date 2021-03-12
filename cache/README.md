@@ -7,6 +7,7 @@ go test -v cache.go cache_test.go
 func FindManifest(config config.Config, cmdhash string, infile []string)(string, error)
 func Create(config config.Config, infile []string, outfile []string, manifestfile string)(error)
 func CopyOut(config config.Config, manifestfile string)(error)
+func Verify(config config.Config, manifestfile string)(bool)
 
 infiles and outfiles are relative path to config.BaseDir
 e.g.
@@ -19,4 +20,6 @@ e.g.
     }else{
        // manifestFile matched, copy from cache onto worksapce
        cache.CopyOut(config, manifestFile)
+       // or verify, true if all matched, false otherwise
+       cache.Verify(config, manifestFile)
     }

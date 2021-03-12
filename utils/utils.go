@@ -5,6 +5,7 @@ import(
     "errors"
     "path/filepath"
     "fmt"
+    "config"
 )
 
 func Exists(name string) bool {
@@ -31,4 +32,13 @@ func RelativePath(basePath string, tgtPath string) (string, error) {
         return "", errors.New(fmt.Sprintf("%v does not exist", fullpath))
     }
     return relpath, nil
+}
+
+func ConverFilesToRelativePath(config config.Config, infile []string)([]string, error){
+    var err error
+    outfile := make([]string, len(infile))
+    for i := 0; i < len(infile); i++{
+        outfile[i], err = RelativePath(config.BaseDir, infile[i])
+    }
+    return outfile, err
 }
