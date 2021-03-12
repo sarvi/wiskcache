@@ -92,7 +92,11 @@ func ReadManifest(manifestFile string)(FileManifest, error){
 
 func SaveManifestFile(config config.Config, inputFileList []string, outputFileList []string, manifestFile string)(error){
     // manifestFile is retrieved from cache.FindManifest
+
     var err error
+    // if an output file is in inputFileList as well, remove it from inputFileList
+    inputFileList = utils.RemoveFromArray(inputFileList, outputFileList)
+
     manifest := GenerateManifest(inputFileList, outputFileList, config.BaseDir)
     jsondata, _ := json.MarshalIndent(manifest, "", " ")
     cacheDir := filepath.Dir(manifestFile)

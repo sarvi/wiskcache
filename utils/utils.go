@@ -58,3 +58,25 @@ func ConverFilesToRelativePath(config config.Config, infile []string) ([]string,
 	}
 	return outfile, err
 }
+
+func RemoveFromArray(list1 []string, list2 []string)([]string){
+	// remove list1's element if it's in list2
+	list1map := make(map[string]bool)
+	for _, key := range list1{
+		list1map[key] = true
+	}
+	list2map := make(map[string]bool)
+	for _, key := range list2{
+		list2map[key] = true
+	}
+	for key, _ := range list1map{
+		if _, ok := list2map[key]; ok{
+			delete(list1map, key)
+		}
+	}
+	keys := []string{}
+	for k := range list1map {
+    		keys = append(keys, k)
+	}
+	return keys
+}
