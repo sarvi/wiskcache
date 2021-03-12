@@ -2,12 +2,9 @@ package main
 
 import (
 	"argparser"
-	"cache"
 	"config"
-	"exec"
 	"fmt"
 	"manifest"
-	"utils"
 )
 
 func main() {
@@ -36,12 +33,6 @@ func main() {
 	// 	manfiest.learn(conf, env, cmd, cmdhash)
 	// }
 
-	if utils.Exists("go.mod") {
-		fmt.Println("Yes")
-	} else {
-		fmt.Println("No")
-	}
-
 	var ConfigValues config.Config
 	var CommandtoExec string
 
@@ -59,8 +50,6 @@ func main() {
 		fmt.Println("Tool Match Not Found")
 	}
 
-	cache.Greet()
-	exec.Greet()
 	hash, err := manifest.GetHash("main.go")
 	if err != nil {
 		fmt.Println(err)
