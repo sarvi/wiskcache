@@ -3,6 +3,7 @@ package exec
 import (
 	"bufio"
 	"config"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,12 +12,6 @@ import (
 	"utils"
 )
 
-func jsonlist(json string) string {
-	json = strings.Trim(json, "[] ")
-	// fmt.Println("Trimed: ", json)
-	return strings.Split(json, ",")[0]
-}
-
 func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) {
 	file, err := os.Open(trackfile)
 	if err != nil {
@@ -24,6 +19,8 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 	}
 	defer file.Close()
 
+	context := map[string]string{}
+	var jsondata []interface{}
 	var line string
 	var parts []string
 	scanner := bufio.NewScanner(file)
@@ -31,11 +28,55 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 		line = scanner.Text()
 		parts = strings.SplitN(line, " ", 3)
 		if parts[1] == "READS" {
-			// fmt.Println("OP: ", parts[1], parts[2])
-			infiles = append(infiles, jsonlist(parts[2]))
+			json.Unmarshal([]byte(parts[2]), &jsondata)
+			// fmt.Println("READS: ", jsondata)
+			if opfile, ok := jsondata[0].(string); ok {
+				if !filepath.IsAbs(opfile) {
+					opfile = filepath.Join(context[parts[0]], opfile)
+				} else {
+					opfile = filepath.Join(opfile, "")
+				}
+				infiles = append(infiles, opfile)
+			} else {
+				panic(ok)
+			}
 		} else if parts[1] == "WRITES" {
-			// fmt.Println("OP: ", parts[1], parts[2])
-			outfiles = append(outfiles, jsonlist(parts[2]))
+			json.Unmarshal([]byte(parts[2]), &jsondata)
+			// fmt.Println("WRITES: ", jsondata)
+			if opfile, ok := jsondata[0].(string); ok {
+				if strings.HasPrefix(opfile, "/dev/") {
+					continue
+				}
+				if !filepath.IsAbs(opfile) {
+					opfile = filepath.Join(context[parts[0]], opfile)
+				} else {
+					opfile = filepath.Join(opfile, "")
+				}
+				outfiles = append(outfiles, opfile)
+			} else {
+				panic(ok)
+			}
+		} else if parts[1] == "CALLS" {
+			json.Unmarshal([]byte(parts[2]), &jsondata)
+			if oplist, ok := jsondata[0].([]interface{}); ok {
+				if uuid, ok := oplist[1].(string); ok {
+					// fmt.Println("UUID: ", uuid)
+					if oplist, ok := jsondata[2].([]interface{}); ok {
+						if cwd, ok := oplist[1].(string); ok {
+							// fmt.Println("CWD: ", cwd)
+							context[uuid] = cwd
+						} else {
+							panic(ok)
+						}
+					} else {
+						panic(ok)
+					}
+				} else {
+					panic(ok)
+				}
+			} else {
+				panic(ok)
+			}
 		}
 	}
 	// fmt.Println("Infiles: ", infiles)

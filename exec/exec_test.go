@@ -15,7 +15,7 @@ func TestRunCmd(t *testing.T) {
 	}{
 		{
 			d:   "relative dirs",
-			cmd: []string{"/bin/bash", "-c", "touch /tmp/testwiskcache.input; cat /tmp/testwiskcache.input > /tmp/testwiskcache.output"},
+			cmd: []string{"/bin/bash", "-c", "echo \"Hello World\" ; cat tests/file1.in > tests/file.out ; cat tests/file2.in >> tests/file.out ; cat tests/file2.in >> tests/file.out"},
 		},
 	}
 	for _, tc := range testCases {
