@@ -11,17 +11,17 @@ import (
 
 //Tool specific config values
 type Tool struct {
-	Match      string   `yaml:"Match"`
-	ToolEnvars []string `yaml:"ToolEnvars"`
+	Match  string   `yaml:"Match"`
+	Envars []string `yaml:"Envars"`
 }
 
 //Config structure declaration
 type Config struct {
-	ToolIdx int      `yaml:"ToolIdx"`
-	Mode    string   `yaml:"Mode"`
-	BaseDir string   `yaml:"BaseDir"`
-	Envars  []string `yaml:"Envars"`
-	Tools   []Tool   `yaml:"Tool"`
+	ToolIdx      int      `yaml:"ToolIdx"`
+	Mode         string   `yaml:"Mode"`
+	BaseDir      string   `yaml:"BaseDir"`
+	Envars       []string `yaml:"Envars"`
+	Tools        []Tool   `yaml:"Tool"`
 	CacheBaseDir string   `yaml:"CacheBaseDir"`
 }
 

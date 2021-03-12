@@ -1,0 +1,19 @@
+ToolIdx: -1
+Mode: readwrite
+BaseDir: /default/base/dir
+CacheBaseDir: /nfs/location/cache
+Envars:
+  - var1
+  - var2
+Tool:
+  - Match: g\+\+
+    Envars:
+      - abc
+      - def
+      - ghi
+      - jkl
+  - Match: gcc
+    Envars:
+      - qwe
+      - rty
+      - uio
