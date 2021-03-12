@@ -10,8 +10,8 @@ import (
 
 //Tool specific config values
 type Tool struct {
-	Match      string   `yaml:"Match"`
-	ToolEnvars []string `yaml:"ToolEnvars"`
+	Match  string   `yaml:"Match"`
+	Envars []string `yaml:"Envars"`
 }
 
 //Config structure declaration
