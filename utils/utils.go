@@ -6,6 +6,7 @@ import(
     "path/filepath"
     "fmt"
     "config"
+    "strings"
 )
 
 func Exists(name string) bool {
@@ -38,7 +39,13 @@ func ConverFilesToRelativePath(config config.Config, infile []string)([]string, 
     var err error
     outfile := make([]string, len(infile))
     for i := 0; i < len(infile); i++{
-        outfile[i], err = RelativePath(config.BaseDir, infile[i])
+        // a workaround
+        infile[i] = strings.Replace(infile[i], "\"", "", -1)
+        if filepath.IsAbs(infile[i]) && strings.HasPrefix(infile[i], config.BaseDir) {
+            outfile[i], err = RelativePath(config.BaseDir, infile[i])
+        }else{
+            outfile[i] = infile[i]
+        }
     }
     return outfile, err
 }

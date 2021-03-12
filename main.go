@@ -5,8 +5,10 @@ import (
 	"config"
 	"exec"
 	"fmt"
-	"manifest"
+	//"manifest"
 	"whash"
+        "utils"
+        "cache"
 )
 
 func main() {
@@ -45,23 +47,40 @@ func main() {
 	fmt.Println("Wiskcache Base Dir -- ", ConfigValues.BaseDir)
 	fmt.Println("Common Envars from config file -- ", ConfigValues.Envars)
 	fmt.Println("Command to be executed -- ", CommandtoExec)
+        /*
 	if ConfigValues.ToolIdx != -1 {
 		fmt.Println("Tool Match Found")
 		fmt.Println("Tool Specific Envars -- ", ConfigValues.Tools[ConfigValues.ToolIdx])
 	} else {
 		fmt.Println("Tool Match Not Found")
 	}
-	env := map[string]string{}
-	cmdhash, _ := whash.CommandHash(ConfigValues, env, CommandtoExec)
-	exitcode, logfile, infiles, outfiles := exec.RunCmd(ConfigValues, cmdhash, CommandtoExec)
-	fmt.Println(exitcode, logfile, infiles, outfiles)
+        */
+        if ConfigValues.Mode == "readwrite" || ConfigValues.Mode == "verify"{
+		env := map[string]string{}
+		cmdhash, _ := whash.CommandHash(ConfigValues, env, CommandtoExec)
+		exitcode, logfile, infiles, outfiles := exec.RunCmd(ConfigValues, cmdhash, CommandtoExec)
+        	fmt.Printf("exit: %v\n", exitcode)
+        	fmt.Printf("logfile: %v\n", logfile)
+        	fmt.Printf("infiles: %v\n", infiles)
+        	fmt.Printf("outfiles: %v\n", outfiles)
+		// fmt.Println(exitcode, logfile, infiles, outfiles)
+		manifestFile, _ := cache.FindManifest(ConfigValues, cmdhash, infiles)
+                if ConfigValues.Mode == "verify"{
+			if cache.Verify(ConfigValues, manifestFile){
+				fmt.Println("All Matched")
+			}
+		}else{
+                        fmt.Println(manifestFile)
+			if !utils.Exists(manifestFile){
+				// create manifest, copy outputfiles to cachedir
+				cache.Create(ConfigValues, infiles, outfiles, manifestFile)
+			}else{
+				// manifestFile matched, copy from cache onto worksapce
+				cache.CopyOut(ConfigValues, manifestFile)
+			}
+		}
+        }
 
-	hash, err := manifest.GetHash("main.go")
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(hash)
-	}
 	// args := os.Args[1:]
 	// exec.cmdhash(args)
 }

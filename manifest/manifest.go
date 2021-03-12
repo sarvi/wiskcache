@@ -54,13 +54,21 @@ func MatchHash(file string, hash string)(string, error){
 func GenerateManifest(inputFileList []string, outputFileList []string, baseDirOfWorkspace string)(FileManifest){
     manifest := FileManifest{InputFile:make(map[string]string), OutputFile:make(map[string]string)}
     for _, file := range inputFileList{
-        hash, err := GetHash(filepath.Join(baseDirOfWorkspace, file))
+        fullpath := file
+        if !filepath.IsAbs(fullpath){ 
+            fullpath = filepath.Join(baseDirOfWorkspace, file)
+        }
+        hash, err := GetHash(fullpath)
         if err == nil{
             manifest.InputFile[file] = hash
         }
     } 
     for _, file := range outputFileList{
-        hash, err := GetHash(filepath.Join(baseDirOfWorkspace, file))
+        fullpath := file
+        if !filepath.IsAbs(fullpath){ 
+            fullpath = filepath.Join(baseDirOfWorkspace, file)
+        }
+        hash, err := GetHash(fullpath)
         if err == nil{
             manifest.OutputFile[file] = hash
         }
