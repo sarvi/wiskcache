@@ -22,6 +22,7 @@ type Config struct {
 	BaseDir string   `yaml:"BaseDir"`
 	Envars  []string `yaml:"Envars"`
 	Tools   []Tool   `yaml:"Tool"`
+	CacheBaseDir string   `yaml:"CacheBaseDir"`
 }
 
 //Parseconfig function to parse the config file

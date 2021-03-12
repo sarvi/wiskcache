@@ -7,11 +7,15 @@ import (
     "errors"
     "utils"
     "lukechampine.com/blake3"
+    "encoding/json"
+    "io/ioutil"
+    "path/filepath"
+    "config"
 )
 
 type FileManifest struct{
-    inputFile map[string]string
-    outputFile map[string]string
+    InputFile map[string]string `json:"inputfile"`
+    OutputFile map[string]string `json:"outputfile"`
 }
 
 func GetHash(file string)(string, error){
@@ -47,19 +51,62 @@ func MatchHash(file string, hash string)(string, error){
     }
 }
 
-func GenerateManifest(inputFileList []string, outputFileList []string)(FileManifest){
-    manifest := FileManifest{inputFile:make(map[string]string), outputFile:make(map[string]string)}
+func GenerateManifest(inputFileList []string, outputFileList []string, baseDirOfWorkspace string)(FileManifest){
+    manifest := FileManifest{InputFile:make(map[string]string), OutputFile:make(map[string]string)}
     for _, file := range inputFileList{
-        hash, err := GetHash(file)
+        hash, err := GetHash(filepath.Join(baseDirOfWorkspace, file))
         if err == nil{
-            manifest.inputFile[file] = hash
+            manifest.InputFile[file] = hash
         }
     } 
     for _, file := range outputFileList{
-        hash, err := GetHash(file)
+        hash, err := GetHash(filepath.Join(baseDirOfWorkspace, file))
         if err == nil{
-            manifest.outputFile[file] = hash
+            manifest.OutputFile[file] = hash
         }
     } 
     return manifest
+}
+
+func ReadManifest(manifestFile string)(FileManifest, error){
+    var manifest FileManifest
+    if !utils.Exists(manifestFile){
+        return manifest, errors.New(fmt.Sprintf("%v does not exist.", manifestFile))
+    }else{
+        data, err := ioutil.ReadFile(manifestFile)
+        if err != nil{
+            return manifest, errors.New(fmt.Sprintf("Cannot read %v", manifestFile))
+        }
+        json.Unmarshal(data, &manifest)
+        return manifest, nil 
+    }
+}
+
+func SaveManifestFile(config config.Config, inputFileList []string, outputFileList []string, manifestFile string)(error){
+    // manifestFile is retrieved from cache.FindManifest
+    var err error
+    manifest := GenerateManifest(inputFileList, outputFileList, config.BaseDir)
+    jsondata, _ := json.MarshalIndent(manifest, "", " ")
+    cacheDir := filepath.Dir(manifestFile)
+    if !utils.Exists(cacheDir){
+        err = os.MkdirAll(cacheDir, 0775)
+        if err != nil{
+            return err
+        }
+    } 
+    err = ioutil.WriteFile(manifestFile, jsondata, 0664)
+    if err != nil{
+        return err
+    }
+    hashOfManifestfile, _ := GetHash(manifestFile)
+    // make symlink
+    manifestWithHash := filepath.Join(cacheDir, "manifest." + hashOfManifestfile)
+    if !utils.Exists(manifestWithHash){
+        os.Rename(manifestFile, manifestWithHash)
+    }else{
+        os.Remove(manifestFile)
+    }
+    relativePath, _ := utils.RelativePath(cacheDir, manifestWithHash)
+    os.Symlink(relativePath, manifestFile)
+    return nil
 }
