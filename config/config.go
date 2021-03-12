@@ -47,7 +47,7 @@ func ToolMatcher(ConfigValues Config, CommandLine string) (idx int) {
 	var Toolsno int = len(ConfigValues.Tools)
 	var Toolname string = strings.Split(CommandLine, " ")[0]
 	for i := 0; i < Toolsno; i++ {
-		matched, err = regexp.MatchString(Toolname, ConfigValues.Tools[i].Match)
+		matched, err = regexp.MatchString(ConfigValues.Tools[i].Match, Toolname)
 		if matched && err == nil {
 			idx = i
 			break
