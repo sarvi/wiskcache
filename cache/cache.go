@@ -132,6 +132,7 @@ func CopyOut(config config.Config, manifestFile string)(error){
                 return err
             }
         }
+        fmt.Printf("Copying %v to %v\n", srcFile, tgtFile)
         cpCmd := exec.Command("cp", srcFile, tgtFile)
         err = cpCmd.Run()
         if err != nil{
