@@ -54,7 +54,7 @@ func CommandHash(c config.Config, env map[string]string, cmd []string) (string, 
 		}
 	}
 	if c.ToolIdx >= 0 {
-		for _, v := range c.Tools[c.ToolIdx].ToolEnvars {
+		for _, v := range c.Tools[c.ToolIdx].Envars {
 			if v, exists := env[v]; exists {
 				tohashvars[v] = v
 			}
