@@ -77,6 +77,11 @@ func main() {
                         fmt.Printf("\nCreated manifest: %v, copied output to cache\n", manifestFile)
                 }else if !utils.Exists(manifestFile) && ConfigValues.Mode == "verify"{
                         fmt.Printf("%v is not found and can't verify\n", manifestFile)
+                }else if utils.Exists(manifestFile) && ConfigValues.Mode == "verify"{
+                        fmt.Println("Verifying ...")
+                        if cache.Verify(ConfigValues, manifestFile){
+                            fmt.Println("All Matched.")
+                        }
                 }else{
                         fmt.Printf("Found manifest: %v, copying out from cache ...\n", manifestFile)
                         cache.CopyOut(ConfigValues, manifestFile)

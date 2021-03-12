@@ -152,6 +152,7 @@ func Verify(config config.Config, manifestFile string)(bool){
             fullpath = filepath.Join(config.BaseDir, outputFile)
         }
         hashOfFileInWorkspace, _ := manifest.GetHash(fullpath)
+        fmt.Printf("Comparing %v ...\n", outputFile)
         if hash != hashOfFileInWorkspace{
             fmt.Printf("%v is not matched, hash: %v, hashInWorkspace %v\n", outputFile, hash, hashOfFileInWorkspace)
             matched = false 
