@@ -16,9 +16,9 @@ func Greet() {
     fmt.Println("Hello World Cache!")
 }
 
-func FindManifest(config config.Config, cmdhash string, inFile []string)(string, error){
+func FindManifest(config config.Config, cmdhash string)(string, error){
     // return manifestFile which could exist or not
-    infile, _ := utils.ConverFilesToRelativePath(config, inFile)
+    
     cacheDir := filepath.Join(config.CacheBaseDir, cmdhash)
     if !utils.Exists(cacheDir){
         err := os.MkdirAll(cacheDir, 0775)
@@ -26,29 +26,37 @@ func FindManifest(config config.Config, cmdhash string, inFile []string)(string,
             return "", err
         }
     }
-    manif := manifest.GenerateManifest(infile, []string{}, config.BaseDir)
     manifestFile := filepath.Join(cacheDir, "manifest.base")
-    updManifestFile := false
     mismatch := false
+    manif := manifest.FileManifest{InputFile:make(map[string]string), OutputFile:make(map[string]string)}
     for{
-        if !utils.Exists(manifestFile) || updManifestFile == true{
+        if !utils.Exists(manifestFile){
             return manifestFile, nil
         }else{
             mismatch = false
             manifestFromFile, _ := manifest.ReadManifest(manifestFile)
-            if manif.InputFile == nil{
-                updManifestFile = true
-                continue
-            }
+            
             // sort InputFile by file name
-            keyOfInputFile := make([]string, 0, len(manif.InputFile))
-            for key := range manif.InputFile{
+            keyOfInputFile := make([]string, 0, len(manifestFromFile.InputFile))
+            for key := range manifestFromFile.InputFile{
                 keyOfInputFile = append(keyOfInputFile, key)
+                fullpath := key
+                if !filepath.IsAbs(fullpath){
+                    fullpath = filepath.Join(config.BaseDir, key)
+                }
+                if !utils.Exists(fullpath){
+                    manifestFile = filepath.Join(cacheDir, fmt.Sprintf("manifest.%v", manifestFromFile.InputFile[key]))
+                    return manifestFile, nil
+                }else{
+                    hash, _ := manifest.GetHash(fullpath)
+                    manif.InputFile[key] = hash
+                }
             }
             sort.Strings(keyOfInputFile)
             for _, inputfile := range keyOfInputFile{
                 if manif.InputFile[inputfile] != manifestFromFile.InputFile[inputfile]{
-                    manifestFile = filepath.Join(cacheDir, fmt.Sprintf("manifest.%v", manif.InputFile[inputfile]))
+                    //manifestFile = filepath.Join(cacheDir, fmt.Sprintf("manifest.%v", manif.InputFile[inputfile]))
+                    manifestFile = filepath.Join(cacheDir, fmt.Sprintf("manifest.%v", manifestFromFile.InputFile[inputfile]))
                     mismatch = true
                     break
                 }
