@@ -23,7 +23,7 @@ func contains(s []string, str string) bool {
 func ArgParse() (ConfigValues config.Config, CommandLine string) {
 
 	var defaultConfigFile string = os.Getenv("WISKCACHE_CONFIG")
-	mode := flag.String("mode", "active", "Wiskcache operating mode. Possible values - active, learning, verify")
+	mode := flag.String("mode", "readwrite", "Wiskcache operating mode. Possible values - readonly, writeonly, readwrite, learn, verify")
 	var InputconfigFile string
 	flag.StringVar(&InputconfigFile, "config", defaultConfigFile, "Wiskcache configure file location")
 	baseDir := flag.String("base_dir", "", "Wiskcache will rewrite absolute paths beginning with base_dir into paths relative to the current working directory")
@@ -32,9 +32,9 @@ func ArgParse() (ConfigValues config.Config, CommandLine string) {
 	CommandLine = strings.Join(remainingArgs, " ")
 
 	//Validating arguments
-	ModeValues := []string{"active", "learning", "verify"}
+	ModeValues := []string{"readonly", "writeonly", "readwrite", "learn", "verify"}
 	if !contains(ModeValues, *mode) {
-		fmt.Println("Invalid mode. Possible values - active, learning, verify")
+		fmt.Println("Invalid mode. Possible values - readonly, writeonly, readwrite, learn, verify")
 		os.Exit(1)
 	}
 
@@ -53,8 +53,12 @@ func ArgParse() (ConfigValues config.Config, CommandLine string) {
 	ConfigValues.ToolIdx = -1
 
 	//Adding the Wiskcache Mode and Base directory information to Config instance
-	ConfigValues.Mode = *mode
-	ConfigValues.BaseDir = *baseDir
+	if *mode != "" {
+		ConfigValues.Mode = *mode
+	}
+	if *baseDir != "" {
+		ConfigValues.BaseDir = *baseDir
+	}
 
 	return
 
