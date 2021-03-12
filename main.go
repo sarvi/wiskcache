@@ -3,8 +3,10 @@ package main
 import (
 	"argparser"
 	"config"
+	"exec"
 	"fmt"
 	"manifest"
+	"whash"
 )
 
 func main() {
@@ -34,7 +36,7 @@ func main() {
 	// }
 
 	var ConfigValues config.Config
-	var CommandtoExec string
+	var CommandtoExec []string
 
 	ConfigValues, CommandtoExec = argparser.ArgParse()
 	ConfigValues.ToolIdx = config.ToolMatcher(ConfigValues, CommandtoExec)
@@ -49,6 +51,10 @@ func main() {
 	} else {
 		fmt.Println("Tool Match Not Found")
 	}
+	env := map[string]string{}
+	cmdhash, _ := whash.CommandHash(ConfigValues, env, CommandtoExec)
+	exitcode, logfile, infiles, outfiles := exec.RunCmd(ConfigValues, cmdhash, CommandtoExec)
+	fmt.Println(exitcode, logfile, infiles, outfiles)
 
 	hash, err := manifest.GetHash("main.go")
 	if err != nil {

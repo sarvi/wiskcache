@@ -140,8 +140,8 @@ func TestHashMustMatch(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		fmt.Println("\tSubTest: ", tc.d)
-		h1, e1 := cmdhash(tc.l.conf, tc.l.env, tc.l.cmd)
-		h2, e2 := cmdhash(tc.r.conf, tc.r.env, tc.r.cmd)
+		h1, e1 := CommandHash(tc.l.conf, tc.l.env, tc.l.cmd)
+		h2, e2 := CommandHash(tc.r.conf, tc.r.env, tc.r.cmd)
 		// fmt.Println(h1, h2)
 		if h1 != h2 || e1 != nil || e2 != nil {
 			t.Fail()
@@ -177,8 +177,8 @@ func TestHashMustNotMatch(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		fmt.Println("\tSubTest: ", tc.d)
-		h1, e1 := cmdhash(tc.l.conf, tc.l.env, tc.l.cmd)
-		h2, e2 := cmdhash(tc.r.conf, tc.r.env, tc.r.cmd)
+		h1, e1 := CommandHash(tc.l.conf, tc.l.env, tc.l.cmd)
+		h2, e2 := CommandHash(tc.r.conf, tc.r.env, tc.r.cmd)
 		// fmt.Println(h1, h2)
 		if h1 == h2 || e1 != nil || e2 != nil {
 			t.Fail()

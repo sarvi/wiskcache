@@ -40,7 +40,7 @@ func envnormalize(c config.Config, env map[string]string) (rv map[string]string)
 	return
 }
 
-func cmdhash(c config.Config, env map[string]string, cmd []string) (string, error) {
+func CommandHash(c config.Config, env map[string]string, cmd []string) (string, error) {
 	h := blake3.New(32, nil)
 	cmd = cmdnormalize(c, cmd)
 	for _, v := range cmd {
@@ -54,7 +54,7 @@ func cmdhash(c config.Config, env map[string]string, cmd []string) (string, erro
 		}
 	}
 	if c.ToolIdx >= 0 {
-		for _, v := range c.Tools[c.ToolIdx].Envars {
+		for _, v := range c.Tools[c.ToolIdx].ToolEnvars {
 			if v, exists := env[v]; exists {
 				tohashvars[v] = v
 			}

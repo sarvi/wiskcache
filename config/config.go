@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"regexp"
-	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -17,11 +16,11 @@ type Tool struct {
 
 //Config structure declaration
 type Config struct {
-	ToolIdx int      `yaml:"ToolIdx"`
-	Mode    string   `yaml:"Mode"`
-	BaseDir string   `yaml:"BaseDir"`
-	Envars  []string `yaml:"Envars"`
-	Tools   []Tool   `yaml:"Tool"`
+	ToolIdx      int      `yaml:"ToolIdx"`
+	Mode         string   `yaml:"Mode"`
+	BaseDir      string   `yaml:"BaseDir"`
+	Envars       []string `yaml:"Envars"`
+	Tools        []Tool   `yaml:"Tool"`
 	CacheBaseDir string   `yaml:"CacheBaseDir"`
 }
 
@@ -39,13 +38,13 @@ func Parseconfig(InputconfigFile string) (ConfigValues Config) {
 }
 
 //ToolMatcher fuction to match the Tool name with the Tool information in config file
-func ToolMatcher(ConfigValues Config, CommandLine string) (idx int) {
+func ToolMatcher(ConfigValues Config, CommandLine []string) (idx int) {
 
 	var matched bool
 	var err error
 	idx = -1
 	var Toolsno int = len(ConfigValues.Tools)
-	var Toolname string = strings.Split(CommandLine, " ")[0]
+	var Toolname string = CommandLine[0]
 	for i := 0; i < Toolsno; i++ {
 		matched, err = regexp.MatchString(ConfigValues.Tools[i].Match, Toolname)
 		if matched && err == nil {

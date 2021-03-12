@@ -20,8 +20,8 @@ func TestRunCmd(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		fmt.Println("\tSubTest: ", tc.d)
-		exitcode, infiles, outfiles := RunCmd(conf, "asdasdasd", tc.cmd)
-		fmt.Println("Exec Failed: ", exitcode, infiles, outfiles, reflect.DeepEqual(infiles, []string{}))
+		exitcode, logfile, infiles, outfiles := RunCmd(conf, "asdasdasd", tc.cmd)
+		fmt.Println("Exec Failed: ", exitcode, logfile, infiles, outfiles, reflect.DeepEqual(infiles, []string{}))
 		// if exitcode != 0 || !reflect.DeepEqual(infiles, []string{}) || !reflect.DeepEqual(outfiles, []string{}) {
 		if exitcode != 0 { // || !reflect.DeepEqual(infiles, []string{}) || !reflect.DeepEqual(outfiles, []string{}) {
 			fmt.Println("Exec Failed: ", exitcode, tc.cmd, infiles, outfiles)
