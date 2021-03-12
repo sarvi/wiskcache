@@ -83,6 +83,10 @@ func Create(config config.Config, inFile []string, outFile []string, manifestfil
         }
     }
     for _, ofile := range outfile{
+        // full path means it's not a file in workspace
+        if filepath.IsAbs(ofile){
+            continue
+        }
         fullPath := filepath.Join(dirOfCachedOutputFiles, filepath.Dir(ofile))
         if !utils.Exists(fullPath){
             err = os.MkdirAll(fullPath, 0775)
@@ -107,6 +111,10 @@ func CopyOut(config config.Config, manifestFile string)(error){
                                             strings.Replace(filepath.Base(manifestFile), "manifest.", "", 1))
     manifestdata, _ := manifest.ReadManifest(manifestFile)
     for outputFile, _ := range manifestdata.OutputFile{
+        // if outputFile is abs path, it's not a file in workspace then
+        if filepath.IsAbs(outputFile){
+            continue
+        }
         srcFile := filepath.Join(dirOfCachedOutputFiles, outputFile)
         tgtFile := filepath.Join(config.BaseDir, outputFile)
         dirOfTgt := filepath.Dir(tgtFile)
@@ -130,9 +138,13 @@ func Verify(config config.Config, manifestFile string)(bool){
     manifestdata, _ := manifest.ReadManifest(manifestFile)
     matched := true
     for outputFile, hash := range manifestdata.OutputFile{
-        hashOfFileInWorkspace, _ := manifest.GetHash(filepath.Join(config.BaseDir, outputFile))
+        fullpath := outputFile
+        if !filepath.IsAbs(outputFile){
+            fullpath = filepath.Join(config.BaseDir, outputFile)
+        }
+        hashOfFileInWorkspace, _ := manifest.GetHash(fullpath)
         if hash != hashOfFileInWorkspace{
-            fmt.Printf("%v is not matched\n", outputFile)
+            fmt.Printf("%v is not matched, hash: %v, hashInWorkspace %v\n", outputFile, hash, hashOfFileInWorkspace)
             matched = false 
         }
     }
