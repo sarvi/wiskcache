@@ -48,6 +48,7 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 					continue
 				}
 				if !filepath.IsAbs(opfile) {
+                                        // opfile is based on WSROOT
 					opfile = filepath.Join(context[parts[0]], opfile)
 				} else {
 					opfile = filepath.Join(opfile, "")
@@ -61,9 +62,12 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 			if oplist, ok := jsondata[0].([]interface{}); ok {
 				if uuid, ok := oplist[1].(string); ok {
 					// fmt.Println("UUID: ", uuid)
-					if oplist, ok := jsondata[2].([]interface{}); ok {
+					// if oplist, ok := jsondata[2].([]interface{}); ok {
+                                        // 2 is CWD, 3 is WSROOT
+					if oplist, ok := jsondata[3].([]interface{}); ok {
 						if cwd, ok := oplist[1].(string); ok {
 							// fmt.Println("CWD: ", cwd)
+							// fmt.Println("WSROOT: ", cwd)
 							context[uuid] = cwd
 						} else {
 							panic(ok)
