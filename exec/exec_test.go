@@ -17,6 +17,10 @@ func TestRunCmd(t *testing.T) {
 			d:   "relative dirs",
 			cmd: []string{"/bin/bash", "-c", "echo \"Hello World\" ; cat tests/file1.in > tests/file.out ; cat tests/file2.in >> tests/file.out ; cat tests/file2.in >> tests/file.out"},
 		},
+		{
+			d:   "gcc compile",
+			cmd: []string{"gcc", "-v", "-o", "tests/hello.o", "tests/hello.c"},
+		},
 	}
 	for _, tc := range testCases {
 		fmt.Println("\tSubTest: ", tc.d)

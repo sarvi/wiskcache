@@ -5,6 +5,7 @@ import (
 	"config"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,6 +21,8 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 	defer file.Close()
 
 	context := map[string]string{}
+	inmap := map[string]string{}
+	outmap := map[string]string{}
 	var jsondata []interface{}
 	var line string
 	var parts []string
@@ -36,7 +39,12 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 				} else {
 					opfile = filepath.Join(opfile, "")
 				}
-				infiles = append(infiles, opfile)
+				if _, ok := outmap[opfile]; !ok {
+					if _, ok := inmap[opfile]; !ok {
+						inmap[opfile] = ""
+						infiles = append(infiles, opfile)
+					}
+				}
 			} else {
 				panic(ok)
 			}
@@ -48,12 +56,19 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 					continue
 				}
 				if !filepath.IsAbs(opfile) {
-                                        // opfile is based on WSROOT
+					// opfile is based on WSROOT
 					opfile = filepath.Join(context[parts[0]], opfile)
 				} else {
 					opfile = filepath.Join(opfile, "")
 				}
-				outfiles = append(outfiles, opfile)
+				if _, ok := inmap[opfile]; ok {
+					fmt.Printf("WARNING: Input file %s is being modified. Not Cacheable. Suggest rewriting command to separate files read and written by tool", opfile)
+				} else {
+					if _, ok := outmap[opfile]; !ok {
+						outmap[opfile] = ""
+						outfiles = append(outfiles, opfile)
+					}
+				}
 			} else {
 				panic(ok)
 			}
@@ -63,7 +78,7 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 				if uuid, ok := oplist[1].(string); ok {
 					// fmt.Println("UUID: ", uuid)
 					// if oplist, ok := jsondata[2].([]interface{}); ok {
-                                        // 2 is CWD, 3 is WSROOT
+					// 2 is CWD, 3 is WSROOT
 					if oplist, ok := jsondata[3].([]interface{}); ok {
 						if cwd, ok := oplist[1].(string); ok {
 							// fmt.Println("CWD: ", cwd)
@@ -103,9 +118,15 @@ func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, log
 		panic(err)
 	}
 	defer out.Close()
+	ro, wo := io.Pipe()
+	defer wo.Close()
+	re, we := io.Pipe()
+	defer we.Close()
 	command := exec.Command(cmd[0], cmd[1:]...)
-	command.Stdout = out
-	command.Stderr = out
+	command.Stdout = io.MultiWriter(wo, out)
+	command.Stderr = io.MultiWriter(we, out)
+	go io.Copy(os.Stdout, ro)
+	go io.Copy(os.Stderr, re)
 	command.Env = append(
 		os.Environ(),
 		"LD_PRELOAD=/ws/sarvi-sjc/wisktrack/${LIB}/libwisktrack.so",
