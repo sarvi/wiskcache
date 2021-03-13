@@ -20,7 +20,6 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 	}
 	defer file.Close()
 
-	context := map[string]string{}
 	inmap := map[string]string{}
 	outmap := map[string]string{}
 	var jsondata []interface{}
@@ -34,11 +33,6 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 			json.Unmarshal([]byte(parts[2]), &jsondata)
 			// fmt.Println("READS: ", jsondata)
 			if opfile, ok := jsondata[0].(string); ok {
-				if !filepath.IsAbs(opfile) {
-					opfile = filepath.Join(context[parts[0]], opfile)
-				} else {
-					opfile = filepath.Join(opfile, "")
-				}
 				if _, ok := outmap[opfile]; !ok {
 					if _, ok := inmap[opfile]; !ok {
 						inmap[opfile] = ""
@@ -55,12 +49,6 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 				if strings.HasPrefix(opfile, "/dev/") {
 					continue
 				}
-				if !filepath.IsAbs(opfile) {
-					// opfile is based on WSROOT
-					opfile = filepath.Join(context[parts[0]], opfile)
-				} else {
-					opfile = filepath.Join(opfile, "")
-				}
 				if _, ok := inmap[opfile]; ok {
 					fmt.Printf("WARNING: Input file %s is being modified. Not Cacheable. Suggest rewriting command to separate files read and written by tool", opfile)
 				} else {
@@ -68,30 +56,6 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 						outmap[opfile] = ""
 						outfiles = append(outfiles, opfile)
 					}
-				}
-			} else {
-				panic(ok)
-			}
-		} else if parts[1] == "CALLS" {
-			json.Unmarshal([]byte(parts[2]), &jsondata)
-			if oplist, ok := jsondata[0].([]interface{}); ok {
-				if uuid, ok := oplist[1].(string); ok {
-					// fmt.Println("UUID: ", uuid)
-					// if oplist, ok := jsondata[2].([]interface{}); ok {
-					// 2 is CWD, 3 is WSROOT
-					if oplist, ok := jsondata[3].([]interface{}); ok {
-						if cwd, ok := oplist[1].(string); ok {
-							// fmt.Println("CWD: ", cwd)
-							// fmt.Println("WSROOT: ", cwd)
-							context[uuid] = cwd
-						} else {
-							panic(ok)
-						}
-					} else {
-						panic(ok)
-					}
-				} else {
-					panic(ok)
 				}
 			} else {
 				panic(ok)
