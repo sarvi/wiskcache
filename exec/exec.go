@@ -13,10 +13,11 @@ import (
 	"utils"
 )
 
-func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) {
+func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string, canbecached bool) {
+	canbecached = true
 	file, err := os.Open(trackfile)
 	if err != nil {
-		return infiles, outfiles
+		return
 	}
 	defer file.Close()
 
@@ -50,6 +51,7 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 					continue
 				}
 				if _, ok := inmap[opfile]; ok {
+					canbecached = false
 					fmt.Printf("WARNING: Input file %s is being modified. Not Cacheable. Suggest rewriting command to separate files read and written by tool", opfile)
 				} else {
 					if _, ok := outmap[opfile]; !ok {
@@ -64,10 +66,10 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string) 
 	}
 	// fmt.Println("Infiles: ", infiles)
 	// fmt.Println("Outfiles: ", outfiles)
-	return infiles, outfiles
+	return
 }
 
-func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, logfile string, infiles []string, outfiles []string) {
+func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, logfile string, infiles []string, outfiles []string, canbecached bool) {
 	fmt.Println("Executing: ", cmd)
 	fmt.Println("Hash: ", cmdhash)
 	logfile = fmt.Sprintf("/tmp/wisktrack/wiskcachecmdrun.%s.log", cmdhash)
@@ -100,13 +102,6 @@ func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, log
 		fmt.Sprintf("WISK_WSROOT=%s", conf.BaseDir),
 		fmt.Sprintf("WISK_TRACE=%s/wisktrace.log", conf.BaseDir),
 	)
-	// fmt.Println(command.Env, command)
-	// if err := command.Run(); err != nil {
-	// 	log.Fatal(err)
-	// 	exitcode = 1
-	// 	return
-	// }
-	// fmt.Println("Run: ", out.String())
 	fmt.Println("Run Trackfile: ", trackfile)
 	err = command.Start()
 	if err != nil {
@@ -114,9 +109,10 @@ func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, log
 	}
 	command.Wait()
 	exitcode = 0
-	infiles, outfiles = ParseWiskTrackFile(trackfile)
+	infiles, outfiles, canbecached = ParseWiskTrackFile(trackfile)
 	fmt.Println("Run Logfile: ", logfile)
 	fmt.Println("Run Infiles: ", infiles)
 	fmt.Println("Run Outfile: ", outfiles)
+	fmt.Println("Can be Cached: ", canbecached)
 	return
 }
