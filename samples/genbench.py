@@ -106,17 +106,21 @@ objects = $(patsubst %.cpp, %.o, $(src))
 all: depend $(lib)
 
 $(lib): $(objects)
-	$(ARCHIVE) cr $@ $^
+	@rm -f $@
+	$(CACHE_PRE) $(ARCHIVE) cr $@ $^
 	touch $@
 
 .cpp.o:
-	$(COMPILER) $(CCFLAGS) -c $<
+	$(CACHE_PRE) $(COMPILER) $(CCFLAGS) -o $@ -c $<
 
 clean:
-	@rm $(objects) $(lib) 2> /dev/null
+	-@rm $(objects) $(lib) 2>/dev/null
 
 depend:
-	@$(DEPEND) $(INC) $(src)
+	@echo skip depend
+
+include ../Makefile.pre
+-include ../Makefile.$(PREFIX)
 
 """)
 
@@ -226,17 +230,53 @@ def createFullMakefile(libs):
         handle.write('lib_' + str(i) + '\\\n')
     handle.write("""
 
-all: $(subdirs)
-	@for i in $(subdirs); do \
-    $(MAKE) -C $$i all; done
+.PHONY: all clean wiskcache ccache
+all wiskcache ccache: $(subdirs)
 
 clean:
-	@for i in $(subdirs); do \
-	(cd $$i; $(MAKE) clean); done
+	@for i in $(subdirs); do 	(cd $$i; $(MAKE) clean); done
+
+.PHONY: $(subdirs)
+$(subdirs):
+	PREFIX=$(PREFIX) $(MAKE) -C $@ $(MAKECMDGOALS)
 
 depend:
-	@for i in $(subdirs); do \
-	(cd $$i; $(MAKE) depend); done
+	@echo Skip depend
+
+demo_clean:
+	@rm -rf /nobackup/$(USER)/wisk-nfscache/*
+
+demo:  demo_clean
+	@echo
+	-@$(MAKE) clean >/dev/null 2>&1
+	@echo
+	@echo Regular build
+	@/usr/bin/time  --format "%U;%S;%E;%PCPU" $(MAKE) all
+	@echo ============================================
+	@echo
+	-@$(MAKE) clean >/dev/null 2>&1
+	@echo
+	@echo "Wiskcache build #1"
+	@/usr/bin/time --format "%U;%S;%E;%PCPU"  $(MAKE) wiskcache
+	@echo ============================================
+	@echo
+	-@$(MAKE) clean >/dev/null 2>&1
+	@echo
+	@echo "Wiskcache build #2"
+	@/usr/bin/time --format "%U;%S;%E;%PCPU"  $(MAKE) wiskcache
+	@echo ============================================
+	@echo
+	-@$(MAKE) clean >/dev/null 2>&1
+	@echo
+	@echo "Ccache build #1"
+	@/usr/bin/time --format "%U;%S;%E;%PCPU"  $(MAKE) ccache > /dev/null
+	@echo ============================================
+	@echo
+	-@$(MAKE) clean >/dev/null 2>&1
+	@echo
+	@echo "Ccache build #2"
+	@/usr/bin/time --format "%U;%S;%E;%PCPU"  $(MAKE) ccache > /dev/null
+	@echo ============================================
 """)
 
 def createFullJamfile(libs):
@@ -316,6 +356,30 @@ lib%s_la_SOURCES =''' % (str(lib_number), str(lib_number)))
     for i in range(classes): handle.write(' lib_%s/class_%s.cpp' % (str(lib_number), str(i)))
     handle.write('\n')
 
+def createExtraMakefiles():
+    handle_pre = open("Makefile.pre", "w")
+    handle_pre.write('''\
+wiskcache:
+	PREFIX=wiskcache  $(MAKE) all
+ccache:
+	PREFIX=ccache $(MAKE) all
+    ''')
+    handle_ccache = open("Makefile.ccache", "w")
+    handle_ccache.write('''\
+CCACHE=ccache  # Will updated as required
+CACHE_PRE=$(CCACHE)
+    ''')
+    handle_wisk = open("Makefile.wiskcache", "w")
+    handle_wisk.write('''\
+WCACHE_BASEDIR ?= $(CURDIR)/../..
+WCACHE=$(WCACHE_BASEDIR)/wiskcache
+CACHE_PRE=$(WCACHE) --
+export WISKCACHE_CONFIG=$(WCACHE_BASEDIR)/config_test.yaml
+    ''')
+    print "Be sure to confirm settings in"
+    print "\to Makefile.ccache"
+    print "\to Makefile.wiskcache"
+
 def setDir(dir):
     if (not os.path.exists(dir)):
         os.mkdir(dir)
@@ -341,6 +405,7 @@ def main(argv):
     createFullMakefile(libs)
     createWtop(libs, classes)
     createAutotoolsTop(libs)
+    createExtraMakefiles()
 
 if __name__ == "__main__":
     main( sys.argv )
