@@ -1,0 +1,3 @@
+CCACHE=/auto/step-build/ccache  # Will updated as required
+CACHE_PRE=$(CCACHE)
+

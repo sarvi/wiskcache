@@ -1,0 +1,8 @@
+
+wiskcache:
+	PREFIX=wiskcache  $(MAKE) all
+
+ccache:
+	PREFIX=ccache $(MAKE) all
+
+

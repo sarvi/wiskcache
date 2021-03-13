@@ -1,0 +1,12 @@
+To generate a suite of bench-mark makefiles,
+you can use genbench.py
+
+genbench.py --help
+
+
+With some modifications, we could generate a suite
+that supports ccache and wiskcache.
+For now, look at these makefiles as samples of the changes
+required. 
+Soon, we will update genbench.py to add these changes
+automatically.
