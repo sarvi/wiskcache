@@ -59,7 +59,7 @@ func main() {
 		}
 	*/
 	if ConfigValues.Mode == "readwrite" || ConfigValues.Mode == "verify" {
-		env := map[string]string{}
+		env := utils.GetEnvironMap()
 		cmdhash, _ := whash.CommandHash(ConfigValues, env, CommandtoExec)
 		manifestFile, _ := cache.FindManifest(ConfigValues, cmdhash)
 		if !utils.Exists(manifestFile) && ConfigValues.Mode != "verify" {
