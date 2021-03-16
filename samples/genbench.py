@@ -41,7 +41,13 @@ def createHeader(name):
     handle.write ('#define ' + guard + '\n\n');
 
     handle.write ('class ' + name + ' {\n');
+    handle.write ("""    int i;
+    int arr[1024];
+ """);
     handle.write ('public:\n');
+    handle.write ("""    int ip;
+    int arrp[1024];
+ """);
     handle.write ('    ' + name + '();\n');
     handle.write ('    ~' + name + '();\n');
     handle.write ('};\n\n');
@@ -50,9 +56,11 @@ def createHeader(name):
 
 
 def createCPP(name, lib_number, classes_per_lib, internal_includes, external_includes):
+    global CPPCONTENT
     filename = name + ".cpp"
     handle = open(filename, "w" )
 
+    handle.write ('#include <stdio.h>\n')
     header= name + ".h"
     handle.write ('#include "' + header + '"\n');
 
@@ -68,8 +76,12 @@ def createCPP(name, lib_number, classes_per_lib, internal_includes, external_inc
             handle.write ('#include <' + libname + '/' + 'class_' + str(i) + '.h>\n')
 
     handle.write ('\n');
-    handle.write (name + '::' + name + '() {}\n');
-    handle.write (name + '::~' + name  + '() {}\n');
+    handle.write (name + '::' + name + "() {\n");
+    handle.write (CPPCONTENT)
+    handle.write ("}\n");
+    handle.write (name + '::~' + name + "() {\n");
+    handle.write (CPPCONTENT)
+    handle.write ("}\n");
 
 
 def createSConscript(lib_number, classes):
@@ -386,6 +398,7 @@ def setDir(dir):
     os.chdir(dir)
 
 def main(argv):
+    global CPPCONTENT
     if len(argv) != 6:
         print(HELP_USAGE)
         return
@@ -395,6 +408,8 @@ def main(argv):
     classes = int(argv[3])
     internal_includes = int(argv[4])
     external_includes = int(argv[5])
+
+    CPPCONTENT = open(os.path.join(os.path.dirname(sys.argv[0]), "cppcontent.template")).read()
 
     setDir(root_dir)
     for i in range(libs):
