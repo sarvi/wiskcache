@@ -5,6 +5,8 @@ import (
 	"config"
 	"exec"
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	//"manifest"
 	"cache"
@@ -43,6 +45,9 @@ func main() {
 
 	ConfigValues, CommandtoExec = argparser.ArgParse()
 	ConfigValues.ToolIdx = config.ToolMatcher(ConfigValues, CommandtoExec)
+	if ConfigValues.Mode == "learn" {
+		ConfigValues.CacheBaseDir = filepath.Join(ConfigValues.BaseDir, "LearningCache")
+	}
 
 	/*
 		fmt.Println("Wiskcache Mode -- ", ConfigValues.Mode)
@@ -58,37 +63,40 @@ func main() {
 			fmt.Println("Tool Match Not Found")
 		}
 	*/
-	if ConfigValues.Mode == "readwrite" || ConfigValues.Mode == "verify" {
-		env := utils.GetEnvironMap()
-		cmdhash, _ := whash.CommandHash(ConfigValues, env, CommandtoExec)
-		manifestFile, _ := cache.FindManifest(ConfigValues, cmdhash)
-		if !utils.Exists(manifestFile) && ConfigValues.Mode != "verify" {
-			//fmt.Println("Running -- ", CommandtoExec)
-			// exitcode, logfile, infiles, outfiles := exec.RunCmd(ConfigValues, cmdhash, CommandtoExec)
-			_, _, infiles, outfiles, _ := exec.RunCmd(ConfigValues, cmdhash, CommandtoExec)
-			/*
-			   fmt.Printf("exit: %v\n", exitcode)
-			   fmt.Printf("logfile: %v\n", logfile)
-			   fmt.Printf("infiles: %v\n", infiles)
-			   fmt.Printf("outfiles: %v\n", outfiles)
-			*/
-			// fmt.Println(exitcode, logfile, infiles, outfiles)
-			cache.Create(ConfigValues, infiles, outfiles, manifestFile)
-			fmt.Printf("\nCreated manifest: %v, copied output to cache\n", manifestFile)
-		} else if !utils.Exists(manifestFile) && ConfigValues.Mode == "verify" {
-			fmt.Printf("%v is not found and can't verify\n", manifestFile)
-		} else if utils.Exists(manifestFile) && ConfigValues.Mode == "verify" {
-			fmt.Println("Verifying ...")
-			if cache.Verify(ConfigValues, manifestFile) {
-				fmt.Println("All Matched.")
-			}
-		} else {
+	cmdexeced := false
+	infiles := []string{}
+	outfiles := []string{}
+	manifestFile := ""
+	env := utils.GetEnvironMap()
+	cmdhash, _ := whash.CommandHash(ConfigValues, env, CommandtoExec)
+	if strings.HasPrefix(ConfigValues.Mode, "read") || ConfigValues.Mode == "verify" {
+		manifestFile, _ = cache.FindManifest(ConfigValues, cmdhash)
+		if ConfigValues.Mode != "verify" {
 			fmt.Printf("Found manifest: %v, copying out from cache ...\n", manifestFile)
 			cache.CopyOut(ConfigValues, manifestFile)
 			fmt.Println("Done!")
 		}
 	}
-
-	// args := os.Args[1:]
-	// exec.cmdhash(args)
+	if !utils.Exists(manifestFile) || ConfigValues.Mode == "verify" || ConfigValues.Mode == "learn" {
+		cmdexeced = true
+		_, _, infiles, outfiles, _ = exec.RunCmd(ConfigValues, cmdhash, CommandtoExec)
+	}
+	if strings.Contains(ConfigValues.Mode, "write") && cmdexeced {
+		cache.Create(ConfigValues, infiles, outfiles, manifestFile)
+		fmt.Printf("\nCreated manifest: %v, copied output to cache\n", manifestFile)
+	}
+	if ConfigValues.Mode == "verify" && cmdexeced {
+		if utils.Exists(manifestFile) {
+			fmt.Println("Verifying ...")
+			if cache.Verify(ConfigValues, manifestFile) {
+				fmt.Println("All Matched.")
+			}
+		} else {
+			fmt.Printf("%v is not found and can't verify\n", manifestFile)
+		}
+	}
+	if ConfigValues.Mode == "learn" && cmdexeced {
+		fmt.Println("Learn Mode, executing the command second time, collect learning data ...")
+		_, _, infiles, outfiles, _ = exec.RunCmd(ConfigValues, cmdhash, CommandtoExec)
+	}
 }
