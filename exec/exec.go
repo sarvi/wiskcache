@@ -110,7 +110,7 @@ func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, log
 	}
 	command.Wait()
 	if !utils.Exists(trackfile) {
-		log.Fatalf("Cannot find trackfile: %s.\nWiskTrack Preload Library probably did not get load or initialized.\nLD_PRELOAD=%s", trackfile, conf.WiskTrackLib)
+		log.Fatalf("Cannot find trackfile: %s.\nWiskTrack Preload Library probably did not get load or initialized.\nWrong LD_PRELOAD=%s\nSet WiskTrackLib in config file", trackfile, conf.WiskTrackLib)
 	}
 	exitcode = 0
 	infiles, outfiles, canbecached = ParseWiskTrackFile(trackfile)

@@ -31,8 +31,11 @@ func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 	}
 	mode := flag.String("mode", "", "Wiskcache operating mode. Possible values - readonly, writeonly, readwrite, learn, verify")
 	var InputconfigFile string
-	flag.StringVar(&InputconfigFile, "config", defaultConfigFile, "Wiskcache configure file location")
 	baseDir := flag.String("base_dir", defaultBaseDir, "Wiskcache will rewrite absolute paths beginning with base_dir into paths relative to the current working directory")
+	if defaultConfigFile == "" {
+		defaultConfigFile = filepath.Join(*baseDir, "wisk/wiskcache_config.yaml")
+	}
+	flag.StringVar(&InputconfigFile, "config", defaultConfigFile, "Wiskcache configure file location")
 	flag.Parse()
 	remainingArgs := flag.Args()
 	CommandLine = remainingArgs
@@ -85,6 +88,14 @@ func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 	if !contains(ModeValues, ConfigValues.Mode) {
 		fmt.Println("Invalid mode. Possible values - readonly, writeonly, readwrite, learn, verify")
 		os.Exit(1)
+	}
+
+	if ConfigValues.CacheBaseDir == "" {
+		log.Fatalf("CacheBaseDir is not set in %s", InputconfigFile)
+	}
+
+	if len(ConfigValues.Envars) == 0 {
+		ConfigValues.Envars = []string{"CWD"}
 	}
 
 	return
