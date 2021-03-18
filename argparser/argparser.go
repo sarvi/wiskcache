@@ -76,10 +76,9 @@ func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 			log.Fatal(err)
 		}
 		if filepath.HasPrefix(libpath, "/router/bin/") {
-			libpath = strings.Replace(libpath, "/router", "/sw/packages/wisk/current", 0)
+			libpath = strings.Replace(libpath, "/router", "/sw/packages/wisk/current", 1)
 		}
 		libpath = filepath.Join(filepath.Dir(filepath.Dir(libpath)), "${LIB}", "libwisktrack.so")
-		fmt.Println(libpath)
 		ConfigValues.WiskTrackLib = libpath
 	}
 
