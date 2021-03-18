@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -95,7 +96,7 @@ func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, log
 	go io.Copy(os.Stderr, re)
 	command.Env = append(
 		os.Environ(),
-		"LD_PRELOAD=/ws/sarvi-sjc/wisktrack/${LIB}/libwisktrack.so",
+		fmt.Sprintf("LD_PRELOAD=%s", conf.WiskTrackLib),
 		"WISK_CONFIG=",
 		"WISK_TRACE=%s/wisktrace.log",
 		fmt.Sprintf("WISK_TRACK=/tmp/wisktrack/wisktrack.%s.file", cmdhash),
@@ -108,6 +109,9 @@ func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, log
 		panic(err)
 	}
 	command.Wait()
+	if !utils.Exists(trackfile) {
+		log.Fatalf("Cannot find trackfile: %s.\nWiskTrack Preload Library probably did not get load or initialized.\nLD_PRELOAD=%s", trackfile, conf.WiskTrackLib)
+	}
 	exitcode = 0
 	infiles, outfiles, canbecached = ParseWiskTrackFile(trackfile)
 	fmt.Println("Run Logfile: ", logfile)

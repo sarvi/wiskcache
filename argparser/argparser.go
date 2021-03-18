@@ -4,7 +4,9 @@ import (
 	"config"
 	"flag"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 )
 
 // contains checks if a string is present in a slice
@@ -22,10 +24,14 @@ func contains(s []string, str string) bool {
 func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 
 	var defaultConfigFile string = os.Getenv("WISKCACHE_CONFIG")
+	var defaultBaseDir string = os.Getenv("WISK_WSROOT")
+	if defaultBaseDir == "" {
+		defaultBaseDir, _ = os.Getwd()
+	}
 	mode := flag.String("mode", "", "Wiskcache operating mode. Possible values - readonly, writeonly, readwrite, learn, verify")
 	var InputconfigFile string
 	flag.StringVar(&InputconfigFile, "config", defaultConfigFile, "Wiskcache configure file location")
-	baseDir := flag.String("base_dir", "", "Wiskcache will rewrite absolute paths beginning with base_dir into paths relative to the current working directory")
+	baseDir := flag.String("base_dir", defaultBaseDir, "Wiskcache will rewrite absolute paths beginning with base_dir into paths relative to the current working directory")
 	flag.Parse()
 	remainingArgs := flag.Args()
 	CommandLine = remainingArgs
@@ -49,6 +55,18 @@ func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 		ConfigValues.Mode = *mode
 	} else if ConfigValues.Mode == "" {
 		ConfigValues.Mode = "readwrite"
+	}
+
+	if ConfigValues.WiskTrackLib == "" {
+		fmt.Println(os.Args[0])
+		libpath, err := filepath.Abs(os.Args[0])
+		if err != nil {
+			fmt.Println("Cannot Locate Wisk Track Library")
+			log.Fatal(err)
+		}
+		libpath = filepath.Join(filepath.Dir(filepath.Dir(libpath)), "${LIB}", "libwisktrack.so")
+		fmt.Println(libpath)
+		ConfigValues.WiskTrackLib = libpath
 	}
 
 	if *baseDir != "" {

@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"regexp"
 
 	"gopkg.in/yaml.v2"
@@ -19,6 +20,7 @@ type Config struct {
 	ToolIdx      int      `yaml:"ToolIdx"`
 	Mode         string   `yaml:"Mode"`
 	BaseDir      string   `yaml:"BaseDir"`
+	WiskTrackLib string   `yaml:"WiskTrackLib"`
 	Envars       []string `yaml:"Envars"`
 	Tools        []Tool   `yaml:"Tool"`
 	CacheBaseDir string   `yaml:"CacheBaseDir"`
@@ -44,6 +46,9 @@ func ToolMatcher(ConfigValues Config, CommandLine []string) (idx int) {
 	var err error
 	idx = -1
 	var Toolsno int = len(ConfigValues.Tools)
+	if len(CommandLine) == 0 {
+		log.Fatal("No Command line")
+	}
 	var Toolname string = CommandLine[0]
 	for i := 0; i < Toolsno; i++ {
 		matched, err = regexp.MatchString(ConfigValues.Tools[i].Match, Toolname)

@@ -3,6 +3,8 @@ package whash
 import (
 	"config"
 	"fmt"
+	"log"
+	"os"
 	"strings"
 
 	"lukechampine.com/blake3"
@@ -32,11 +34,17 @@ func cmdnormalize(c config.Config, cmd []string) (rv []string) {
 
 func envnormalize(c config.Config, env map[string]string) (rv map[string]string) {
 	rv = make(map[string]string)
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatal("Error geting Current Directory")
+	} else {
+		rv["CWD"] = pathtorel(cwd, c.BaseDir)
+	}
 	for k, v := range env {
 		// fmt.Println("replacing: ", p, c.BaseDir)
 		rv[k] = pathtorel(v, c.BaseDir)
 	}
-	// fmt.Println("Env: ", rv)
+	// fmt.Println("Env: ", rv["CWD"])
 	return
 }
 
