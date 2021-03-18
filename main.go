@@ -15,31 +15,6 @@ import (
 )
 
 func main() {
-	// env := os.Environ()
-	// conf, cmd = argparser.ArgParse()
-	// cmdhash = whash.cmdhash(conf, env, cmd)
-	// man = cache.findmanifest(cmdhash)
-	// if config.mode == "active" || config.mode == "verify" {
-	// 	if man == nil {
-	// 		exitcode, infiles, outfiles = exec.runcmd(cmd)
-	// 		if exitcode != 0 {
-	// 			exit(exitcode)
-	// 		}
-	// 		man = manifest.new(man, infile, outfiles)
-	// 		cache.create(man)
-	// 		exit(0)
-	// 	} else {
-	// 		if config.mode == "active" {
-	// 			cache.copyout(man) // Copy out content from cache
-	// 		} else {
-	// 			cache.verify(man) // Verify content of Manifest with content of workspace
-	// 		}
-	// 		exit(0)
-	// 	}
-	// } else {
-	// 	manfiest.learn(conf, env, cmd, cmdhash)
-	// }
-
 	var ConfigValues config.Config
 	var CommandtoExec []string
 
@@ -49,20 +24,6 @@ func main() {
 		ConfigValues.CacheBaseDir = filepath.Join(ConfigValues.BaseDir, "LearningCache")
 	}
 
-	/*
-		fmt.Println("Wiskcache Mode -- ", ConfigValues.Mode)
-		fmt.Println("Wiskcache Base Dir -- ", ConfigValues.BaseDir)
-		fmt.Println("Common Envars from config file -- ", ConfigValues.Envars)
-		fmt.Println("Command to be executed -- ", CommandtoExec)
-	*/
-	/*
-		if ConfigValues.ToolIdx != -1 {
-			fmt.Println("Tool Match Found")
-			fmt.Println("Tool Specific Envars -- ", ConfigValues.Tools[ConfigValues.ToolIdx])
-		} else {
-			fmt.Println("Tool Match Not Found")
-		}
-	*/
 	cmdexeced := false
 	infiles := []string{}
 	outfiles := []string{}
