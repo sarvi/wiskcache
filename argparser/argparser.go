@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 )
 
 // contains checks if a string is present in a slice
@@ -73,6 +74,9 @@ func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 		if err != nil {
 			fmt.Println("Cannot Locate Wisk Track Library")
 			log.Fatal(err)
+		}
+		if filepath.HasPrefix(libpath, "/router/bin/") {
+			libpath = strings.Replace(libpath, "/router", "/sw/packages/wisk/current", 0)
 		}
 		libpath = filepath.Join(filepath.Dir(filepath.Dir(libpath)), "${LIB}", "libwisktrack.so")
 		fmt.Println(libpath)
