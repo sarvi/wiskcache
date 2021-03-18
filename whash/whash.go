@@ -44,33 +44,39 @@ func envnormalize(c config.Config, env map[string]string) (rv map[string]string)
 		// fmt.Println("replacing: ", p, c.BaseDir)
 		rv[k] = pathtorel(v, c.BaseDir)
 	}
-	// fmt.Println("Env: ", rv["CWD"])
 	return
 }
 
-func CommandHash(c config.Config, env map[string]string, cmd []string) (string, error) {
+func CommandHash(c config.Config, env map[string]string, cmd []string) (string, string, error) {
 	h := blake3.New(32, nil)
 	cmd = cmdnormalize(c, cmd)
+	cmdhashlist := []string{}
 	for _, v := range cmd {
-		h.Write([]byte(v))
+		cmdhashlist = append(cmdhashlist, v)
 	}
+	// for _, v := range cmd {
+	// 	h.Write([]byte(v))
+	// }
 	env = envnormalize(c, env)
 	tohashvars := map[string]string{}
-	for _, v := range c.Envars {
-		if v, exists := env[v]; exists {
-			tohashvars[v] = v
+	for _, k := range c.Envars {
+		if v, exists := env[k]; exists {
+			tohashvars[k] = v
 		}
 	}
 	if c.ToolIdx >= 0 {
-		for _, v := range c.Tools[c.ToolIdx].Envars {
-			if v, exists := env[v]; exists {
-				tohashvars[v] = v
+		for _, k := range c.Tools[c.ToolIdx].Envars {
+			if v, exists := env[k]; exists {
+				tohashvars[k] = v
 			}
 		}
 	}
+	cmdhashlist = append(cmdhashlist, "\n")
 	for k, v := range tohashvars {
-		h.Write([]byte(k))
-		h.Write([]byte(v))
+		cmdhashlist = append(cmdhashlist, k, v, "\n")
 	}
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+	cmdhash := strings.Join(cmdhashlist, " ")
+	fmt.Println("Hashing Command:\n", cmdhash)
+	h.Write([]byte(cmdhash))
+	return cmdhash, fmt.Sprintf("%x", h.Sum(nil)), nil
 }

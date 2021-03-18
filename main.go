@@ -29,7 +29,7 @@ func main() {
 	outfiles := []string{}
 	manifestFile := ""
 	env := utils.GetEnvironMap()
-	cmdhash, _ := whash.CommandHash(ConfigValues, env, CommandtoExec)
+	_, cmdhash, _ := whash.CommandHash(ConfigValues, env, CommandtoExec)
 	if strings.HasPrefix(ConfigValues.Mode, "read") || ConfigValues.Mode == "verify" {
 		manifestFile, _ = cache.FindManifest(ConfigValues, cmdhash)
 		if ConfigValues.Mode != "verify" {
