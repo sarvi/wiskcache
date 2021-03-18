@@ -2,7 +2,7 @@ ToolIdx: -1
 # Mode: verify
 Mode: readwrite
 # BaseDir: /ws/sarvi-sjc/wiskcache
-CacheBaseDir: /nobackup/sarvi/wisk-nfscache
+# CacheBaseDir: /nobackup/sarvi/wisk-nfscache
 # WiskTrackLib: /sw/packages/wisk/current/${LIB}/libwisktrack.so
 # WiskTrackLib: /ws/sarvi-sjc/wisktrack/${LIB}/libwisktrack.so
 # Envars:
