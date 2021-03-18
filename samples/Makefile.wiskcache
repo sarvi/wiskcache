@@ -1,5 +1,2 @@
-WCACHE_BASEDIR ?= $(CURDIR)/../..
-WCACHE=$(WCACHE_BASEDIR)/wiskcache
+WCACHE=/router/bin/wiskcache
 CACHE_PRE=$(WCACHE) --
-
-export WISKCACHE_CONFIG=$(WCACHE_BASEDIR)/config_test.yaml

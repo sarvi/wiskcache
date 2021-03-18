@@ -4,6 +4,7 @@
 import sys
 import os.path
 from random import Random
+import shutil
 random = Random(0) # initialise with seed to have reproductible benches
 
 HELP_USAGE = """Usage: generate_libs.py root libs classes internal external.
@@ -55,7 +56,7 @@ def createHeader(name):
     handle.write ('#endif\n');
 
 
-def createCPP(name, lib_number, classes_per_lib, internal_includes, external_includes):
+def createCPP(name, lib_number, classes_per_lib, internal_includes, external_includes, code_size):
     global CPPCONTENT
     filename = name + ".cpp"
     handle = open(filename, "w" )
@@ -77,10 +78,22 @@ def createCPP(name, lib_number, classes_per_lib, internal_includes, external_inc
 
     handle.write ('\n');
     handle.write (name + '::' + name + "() {\n");
-    handle.write (CPPCONTENT)
+    handle.write ('    int i;\n');
+    for i in range(code_size):
+        handle.write("""
+    for(i=0; i<1024; i++) {
+        printf("Hello World: %d", i);
+    }
+    \n""")
     handle.write ("}\n");
     handle.write (name + '::~' + name + "() {\n");
-    handle.write (CPPCONTENT)
+    handle.write ('    int i;\n');
+    for i in range(code_size):
+        handle.write("""
+    for(i=0; i<1024; i++) {
+        printf("Hello World: %d", i);
+    }
+    \n""")
     handle.write ("}\n");
 
 
@@ -199,13 +212,13 @@ def createVCProjFile(lib_number, classes):
 </VisualStudioProject>
 """)
 
-def createLibrary(lib_number, classes, internal_includes, external_includes):
+def createLibrary(lib_number, classes, internal_includes, external_includes, code_size):
     name = "lib_" + str(lib_number)
     setDir(name)
     for i in range(classes):
         classname = "class_" + str(i)
         createHeader(classname)
-        createCPP(classname, lib_number, classes, internal_includes, external_includes)
+        createCPP(classname, lib_number, classes, internal_includes, external_includes, code_size)
     createSConscript(lib_number, classes)
     createLibCMakeLists(lib_number, classes)
     createLibMakefile(lib_number, classes)
@@ -383,10 +396,8 @@ CACHE_PRE=$(CCACHE)
     ''')
     handle_wisk = open("Makefile.wiskcache", "w")
     handle_wisk.write('''\
-WCACHE_BASEDIR ?= $(CURDIR)/../..
-WCACHE=$(WCACHE_BASEDIR)/wiskcache
+WCACHE=/router/bin/wiskcache
 CACHE_PRE=$(WCACHE) --
-export WISKCACHE_CONFIG=$(WCACHE_BASEDIR)/config_test.yaml
     ''')
     print "Be sure to confirm settings in"
     print "\to Makefile.ccache"
@@ -397,9 +408,20 @@ def setDir(dir):
         os.mkdir(dir)
     os.chdir(dir)
 
+def createWiskConfig(root_dir):
+    wiskcacheroot = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    os.makedirs(os.path.join(root_dir, "wisk/config"))
+    shutil.copyfile(
+        os.path.join(wiskcacheroot, "wisk/config/wiskcache_config.yaml"),
+        os.path.join(root_dir, "wisk/config/wiskcache_config.yaml"))
+    shutil.copyfile(
+        os.path.join(wiskcacheroot, "wisk/config/wisktrack.ini"),
+        os.path.join(root_dir, "wisk/config/wisktrack.ini"))
+    print("Creating Config directories", wiskcacheroot)
+
 def main(argv):
     global CPPCONTENT
-    if len(argv) != 6:
+    if len(argv) != 7:
         print(HELP_USAGE)
         return
 
@@ -408,12 +430,13 @@ def main(argv):
     classes = int(argv[3])
     internal_includes = int(argv[4])
     external_includes = int(argv[5])
+    code_size = int(argv[6])
 
     CPPCONTENT = open(os.path.join(os.path.dirname(sys.argv[0]), "cppcontent.template")).read()
 
     setDir(root_dir)
     for i in range(libs):
-        createLibrary(i, classes, internal_includes, external_includes)
+        createLibrary(i, classes, internal_includes, external_includes, code_size)
 
     createSConstruct(libs)
     createCMakeLists(libs)
@@ -421,6 +444,7 @@ def main(argv):
     createWtop(libs, classes)
     createAutotoolsTop(libs)
     createExtraMakefiles()
+    createWiskConfig(root_dir)
 
 if __name__ == "__main__":
     main( sys.argv )

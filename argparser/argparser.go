@@ -46,7 +46,7 @@ func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 		if err == nil {
 			ConfigValues = config.Parseconfig(InputconfigFile)
 		} else {
-			fmt.Println("Config file does not exist")
+			fmt.Printf("Config file %s does not exist", InputconfigFile)
 			os.Exit(1)
 		}
 	}
