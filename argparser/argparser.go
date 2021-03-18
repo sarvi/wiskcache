@@ -69,8 +69,7 @@ func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 	}
 
 	if ConfigValues.WiskTrackLib == "" {
-		fmt.Println(os.Args[0])
-		libpath, err := filepath.Abs(os.Args[0])
+		libpath, err := os.Executable()
 		if err != nil {
 			fmt.Println("Cannot Locate Wisk Track Library")
 			log.Fatal(err)
