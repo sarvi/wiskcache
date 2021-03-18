@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/user"
 	"path/filepath"
 )
 
@@ -49,6 +50,12 @@ func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 
 	//ToolIndex default value set to -1
 	ConfigValues.ToolIdx = -1
+
+	user, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+	ConfigValues.UserName = user.Username
 
 	//Adding the Wiskcache Mode and Base directory information to Config instance
 	if *mode != "" {

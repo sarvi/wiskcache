@@ -73,8 +73,8 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string, 
 func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, logfile string, infiles []string, outfiles []string, canbecached bool) {
 	fmt.Println("Executing: ", cmd)
 	fmt.Println("Hash: ", cmdhash)
-	logfile = fmt.Sprintf("/tmp/wisktrack/wiskcachecmdrun.%s.log", cmdhash)
-	trackfile := fmt.Sprintf("/tmp/wisktrack/wisktrack.%s.file", cmdhash)
+	logfile = fmt.Sprintf("/tmp/%s/wisktrack/wiskcachecmdrun.%s.log", conf.UserName, cmdhash)
+	trackfile := fmt.Sprintf("/tmp/%s/wisktrack/wisktrack.%s.file", conf.UserName, cmdhash)
 	os.Remove(trackfile)
 	if !utils.Exists(filepath.Dir(logfile)) {
 		os.MkdirAll(filepath.Dir(logfile), 0775)
@@ -99,9 +99,9 @@ func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, log
 		fmt.Sprintf("LD_PRELOAD=%s", conf.WiskTrackLib),
 		"WISK_CONFIG=",
 		"WISK_TRACE=%s/wisktrace.log",
-		fmt.Sprintf("WISK_TRACK=/tmp/wisktrack/wisktrack.%s.file", cmdhash),
+		fmt.Sprintf("WISK_TRACK=/tmp/%s/wisktrack/wisktrack.%s.file", conf.UserName, cmdhash),
 		fmt.Sprintf("WISK_WSROOT=%s", conf.BaseDir),
-		fmt.Sprintf("WISK_TRACE=%s/wisktrace.log", conf.BaseDir),
+		// fmt.Sprintf("WISK_TRACE=%s/wisktrace.log", conf.BaseDir),
 	)
 	fmt.Println("Run Trackfile: ", trackfile)
 	err = command.Start()

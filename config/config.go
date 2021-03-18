@@ -18,6 +18,7 @@ type Tool struct {
 //Config structure declaration
 type Config struct {
 	ToolIdx      int      `yaml:"ToolIdx"`
+	UserName     string   `yaml:"UserName"`
 	Mode         string   `yaml:"Mode"`
 	BaseDir      string   `yaml:"BaseDir"`
 	WiskTrackLib string   `yaml:"WiskTrackLib"`
