@@ -33,7 +33,7 @@ func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 	var InputconfigFile string
 	baseDir := flag.String("base_dir", defaultBaseDir, "Wiskcache will rewrite absolute paths beginning with base_dir into paths relative to the current working directory")
 	if defaultConfigFile == "" {
-		defaultConfigFile = filepath.Join(*baseDir, "wisk/wiskcache_config.yaml")
+		defaultConfigFile = filepath.Join(*baseDir, "wisk/config/wiskcache_config.yaml")
 	}
 	flag.StringVar(&InputconfigFile, "config", defaultConfigFile, "Wiskcache configure file location")
 	flag.Parse()
