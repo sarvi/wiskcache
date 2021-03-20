@@ -35,6 +35,9 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string, 
 			json.Unmarshal([]byte(parts[2]), &jsondata)
 			// fmt.Println("READS: ", jsondata)
 			if opfile, ok := jsondata[0].(string); ok {
+				if strings.HasPrefix(opfile, "/dev/") {
+					continue
+				}
 				if _, ok := outmap[opfile]; !ok {
 					if _, ok := inmap[opfile]; !ok {
 						inmap[opfile] = ""
