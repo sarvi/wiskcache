@@ -32,13 +32,12 @@ func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 	for i, v := range os.Args {
 		if v == "---" {
 			cmdargi = i + 1
-			cmdargj = cmdargi
-			for j, w := range os.Args[cmdargj:] {
+			for j, w := range os.Args[cmdargi:] {
 				if strings.Contains(w,"=") {
 					pair := strings.SplitN(w,"=",2)
 					os.Setenv(pair[0], pair[1])
-					cmdargj++
 				} else {
+					cmdargj = cmdargi + j
 					break
 				}
 			}
@@ -46,7 +45,7 @@ func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 		}
 		args = append(args, v)
 	}
-	if cmdargi < 0 || cmdargi >= len(os.Args) || cmdargj >= len(os.Args) {
+	if cmdargi < 0 || cmdargi >= len(os.Args) || cmdargj < 0  {
 		log.Fatalf("No command-to-cache provided. wiskcache <wiskcache-options> --- command-to-cacche")
 	}
 
