@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 )
 
 // contains checks if a string is present in a slice
@@ -27,17 +28,29 @@ func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 	var defaultBaseDir string = os.Getenv("WISK_WSROOT")
 	args := []string{}
 	cmdargi := -1
+	cmdargj := -1
 	for i, v := range os.Args {
 		if v == "---" {
 			cmdargi = i + 1
+			cmdargj = cmdargi
+			for j, w := range os.Args[cmdargj:] {
+				if strings.Contains(w,"=") {
+					pair := strings.SplitN(w,"=",2)
+					os.Setenv(pair[0], pair[1])
+					cmdargj++
+				} else {
+					break
+				}
+			}
 			break
 		}
 		args = append(args, v)
 	}
-	if cmdargi < 0 || cmdargi >= len(os.Args) {
+	if cmdargi < 0 || cmdargi >= len(os.Args) || cmdargj >= len(os.Args) {
 		log.Fatalf("No command-to-cache provided. wiskcache <wiskcache-options> --- command-to-cacche")
 	}
-	CommandLine = os.Args[cmdargi:]
+
+	CommandLine = os.Args[cmdargj:]
 	os.Args = os.Args[:cmdargi-1]
 	if defaultBaseDir == "" {
 		defaultBaseDir, _ = os.Getwd()
