@@ -23,9 +23,22 @@ func contains(s []string, str string) bool {
 
 //ArgParse funtion to parse arguments
 func ArgParse() (ConfigValues config.Config, CommandLine []string) {
-
 	var defaultConfigFile string = os.Getenv("WISKCACHE_CONFIG")
 	var defaultBaseDir string = os.Getenv("WISK_WSROOT")
+	args := []string{}
+	cmdargi := -1
+	for i, v := range os.Args {
+		if v == "---" {
+			cmdargi = i + 1
+			break
+		}
+		args = append(args, v)
+	}
+	if cmdargi < 0 || cmdargi >= len(os.Args) {
+		log.Fatalf("No command-to-cache provided. wiskcache <wiskcache-options> --- command-to-cacche")
+	}
+	CommandLine = os.Args[cmdargi:]
+	os.Args = os.Args[:cmdargi-1]
 	if defaultBaseDir == "" {
 		defaultBaseDir, _ = os.Getwd()
 	}
@@ -37,8 +50,6 @@ func ArgParse() (ConfigValues config.Config, CommandLine []string) {
 	}
 	flag.StringVar(&InputconfigFile, "config", defaultConfigFile, "Wiskcache configure file location")
 	flag.Parse()
-	remainingArgs := flag.Args()
-	CommandLine = remainingArgs
 
 	//Parsing config file to get Configvalues instance
 	if InputconfigFile != "" {
