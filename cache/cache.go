@@ -5,7 +5,6 @@ import(
     "config"
     "path/filepath"
     "manifest"
-    "sort"
     "utils"
     "os"
     "os/exec"
@@ -28,7 +27,7 @@ func FindManifest(config config.Config, cmdhash string)(string, error){
     }
     manifestFile := filepath.Join(cacheDir, "manifest.base")
     mismatch := false
-    manif := manifest.FileManifest{InputFile:make(map[string]string), OutputFile:make(map[string]string)}
+    manif := manifest.FileManifest{InputFile:[]manifest.FileHash{}, OutputFile:[]manifest.FileHash{}}
     for{
         if !utils.Exists(manifestFile){
             return manifestFile, nil
@@ -36,27 +35,22 @@ func FindManifest(config config.Config, cmdhash string)(string, error){
             mismatch = false
             manifestFromFile, _ := manifest.ReadManifest(manifestFile)
             
-            // sort InputFile by file name
-            keyOfInputFile := make([]string, 0, len(manifestFromFile.InputFile))
-            for key := range manifestFromFile.InputFile{
-                keyOfInputFile = append(keyOfInputFile, key)
-                fullpath := key
+            for _, inputFile := range manifestFromFile.InputFile{
+                fullpath := inputFile.FileName
                 if !filepath.IsAbs(fullpath){
-                    fullpath = filepath.Join(config.BaseDir, key)
+                    fullpath = filepath.Join(config.BaseDir, fullpath)
                 }
                 if !utils.Exists(fullpath){
-                    manifestFile = filepath.Join(cacheDir, fmt.Sprintf("manifest.%v", manifestFromFile.InputFile[key]))
+                    manifestFile = filepath.Join(cacheDir, fmt.Sprintf("manifest.%v", inputFile.FileHash))
                     return manifestFile, nil
                 }else{
                     hash, _ := manifest.GetHash(fullpath)
-                    manif.InputFile[key] = hash
+                    manif.InputFile = append(manif.InputFile, manifest.FileHash{inputFile.FileName, hash})
                 }
             }
-            sort.Strings(keyOfInputFile)
-            for _, inputfile := range keyOfInputFile{
-                if manif.InputFile[inputfile] != manifestFromFile.InputFile[inputfile]{
-                    //manifestFile = filepath.Join(cacheDir, fmt.Sprintf("manifest.%v", manif.InputFile[inputfile]))
-                    manifestFile = filepath.Join(cacheDir, fmt.Sprintf("manifest.%v", manifestFromFile.InputFile[inputfile]))
+            for inputIndex, inputFile := range manifestFromFile.InputFile{
+                if manif.InputFile[inputIndex].FileHash != inputFile.FileHash{
+                    manifestFile = filepath.Join(cacheDir, fmt.Sprintf("manifest.%v", inputFile.FileHash))
                     mismatch = true
                     break
                 }
@@ -118,13 +112,13 @@ func CopyOut(config config.Config, manifestFile string)(error){
     dirOfCachedOutputFiles := filepath.Join(filepath.Dir(manifestFile),
                                             strings.Replace(filepath.Base(manifestFile), "manifest.", "", 1))
     manifestdata, _ := manifest.ReadManifest(manifestFile)
-    for outputFile, _ := range manifestdata.OutputFile{
+    for _, outputFile := range manifestdata.OutputFile{
         // if outputFile is abs path, it's not a file in workspace then
-        if filepath.IsAbs(outputFile){
+        if filepath.IsAbs(outputFile.FileName){
             continue
         }
-        srcFile := filepath.Join(dirOfCachedOutputFiles, outputFile)
-        tgtFile := filepath.Join(config.BaseDir, outputFile)
+        srcFile := filepath.Join(dirOfCachedOutputFiles, outputFile.FileName)
+        tgtFile := filepath.Join(config.BaseDir, outputFile.FileName)
         dirOfTgt := filepath.Dir(tgtFile)
         if !utils.Exists(dirOfTgt){
             err = os.MkdirAll(dirOfTgt, 0775)
@@ -146,15 +140,16 @@ func CopyOut(config config.Config, manifestFile string)(error){
 func Verify(config config.Config, manifestFile string)(bool){
     manifestdata, _ := manifest.ReadManifest(manifestFile)
     matched := true
-    for outputFile, hash := range manifestdata.OutputFile{
-        fullpath := outputFile
-        if !filepath.IsAbs(outputFile){
-            fullpath = filepath.Join(config.BaseDir, outputFile)
+    for _, outputFile := range manifestdata.OutputFile{
+        fullpath := outputFile.FileName
+        hash := outputFile.FileHash
+        if !filepath.IsAbs(fullpath){
+            fullpath = filepath.Join(config.BaseDir, fullpath)
         }
         hashOfFileInWorkspace, _ := manifest.GetHash(fullpath)
         fmt.Printf("Comparing %v ...\n", outputFile)
         if hash != hashOfFileInWorkspace{
-            fmt.Printf("%v is not matched, hash: %v, hashInWorkspace %v\n", outputFile, hash, hashOfFileInWorkspace)
+            fmt.Printf("%v is not matched, hash: %v, hashInWorkspace %v\n", fullpath, hash, hashOfFileInWorkspace)
             matched = false 
         }
     }
