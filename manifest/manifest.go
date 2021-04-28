@@ -14,8 +14,10 @@ import (
 )
 
 type FileManifest struct{
-    InputFile map[string]string `json:"inputfile"`
-    OutputFile map[string]string `json:"outputfile"`
+    InputFile []string `json:"inputfile"`
+    InputFileHash []string `json:"inputfile_hash"`
+    OutputFile []string `json:"outputfile"`
+    OutputFileHash []string `json:"outputfile_hash"`
 }
 
 func GetHash(file string)(string, error){
@@ -52,7 +54,7 @@ func MatchHash(file string, hash string)(string, error){
 }
 
 func GenerateManifest(inputFileList []string, outputFileList []string, baseDirOfWorkspace string)(FileManifest){
-    manifest := FileManifest{InputFile:make(map[string]string), OutputFile:make(map[string]string)}
+    manifest := FileManifest{InputFile:[]string{}, InputFileHash:[]string{}, OutputFile:[]string{}, OutputFileHash:[]string{}}
     for _, file := range inputFileList{
         fullpath := file
         if !filepath.IsAbs(fullpath){ 
@@ -60,7 +62,8 @@ func GenerateManifest(inputFileList []string, outputFileList []string, baseDirOf
         }
         hash, err := GetHash(fullpath)
         if err == nil{
-            manifest.InputFile[file] = hash
+            manifest.InputFile = append(manifest.InputFile, file)
+            manifest.InputFileHash = append(manifest.InputFileHash, hash)
         }
     } 
     for _, file := range outputFileList{
@@ -70,7 +73,8 @@ func GenerateManifest(inputFileList []string, outputFileList []string, baseDirOf
         }
         hash, err := GetHash(fullpath)
         if err == nil{
-            manifest.OutputFile[file] = hash
+            manifest.OutputFile = append(manifest.OutputFile, file)
+            manifest.OutputFileHash = append(manifest.OutputFileHash, hash)
         }
     } 
     return manifest
