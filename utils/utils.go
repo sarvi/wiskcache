@@ -75,10 +75,8 @@ func RemoveFromArray(list1 []string, list2 []string)([]string){
 		}
 	}
 	keys := []string{}
-	for _, key := range list1{
-		if _, ok := list1map[key]; ok{
-			keys = append(keys, key)
-		}
+	for k := range list1map {
+    		keys = append(keys, k)
 	}
-        return keys
+	return keys
 }
