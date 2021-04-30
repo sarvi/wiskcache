@@ -73,7 +73,7 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string, 
 	return
 }
 
-func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, logfile string, infiles []string, outfiles []string, canbecached bool) {
+func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, logfile string, infiles []string, outfiles []string, symlinks [][2]string, canbecached bool) {
 	fmt.Println("Executing: ", cmd)
 	fmt.Println("Hash: ", cmdhash)
 	logfile = fmt.Sprintf("/tmp/%s/wisktrack/wiskcachecmdrun.%s.log", conf.UserName, cmdhash)
@@ -120,6 +120,7 @@ func RunCmd(conf config.Config, cmdhash string, cmd []string) (exitcode int, log
 	fmt.Println("Run Logfile: ", logfile)
 	fmt.Println("Run Infiles: ", infiles)
 	fmt.Println("Run Outfile: ", outfiles)
+	fmt.Println("Run Symlink: ", symlinks)
 	fmt.Println("Can be Cached: ", canbecached)
 	return
 }

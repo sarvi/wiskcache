@@ -27,6 +27,8 @@ func main() {
 	cmdexeced := false
 	infiles := []string{}
 	outfiles := []string{}
+        symlinks := [][2]string{}
+        logfile := ""
 	manifestFile := ""
 	env := utils.GetEnvironMap()
 	_, cmdhash, _ := whash.CommandHash(ConfigValues, env, CommandtoExec)
@@ -40,10 +42,10 @@ func main() {
 	}
 	if !utils.Exists(manifestFile) || ConfigValues.Mode == "verify" || ConfigValues.Mode == "learn" {
 		cmdexeced = true
-		_, _, infiles, outfiles, _ = exec.RunCmd(ConfigValues, cmdhash, CommandtoExec)
+		_, logfile, infiles, outfiles, symlinks, _ = exec.RunCmd(ConfigValues, cmdhash, CommandtoExec)
 	}
 	if strings.Contains(ConfigValues.Mode, "write") && cmdexeced {
-		cache.Create(ConfigValues, infiles, outfiles, manifestFile)
+		cache.Create(ConfigValues, logfile, infiles, outfiles, symlinks, manifestFile)
 		fmt.Printf("\nCreated manifest: %v, copied output to cache\n", manifestFile)
 	}
 	if ConfigValues.Mode == "verify" && cmdexeced {
@@ -58,6 +60,6 @@ func main() {
 	}
 	if ConfigValues.Mode == "learn" && cmdexeced {
 		fmt.Println("Learn Mode, executing the command second time, collect learning data ...")
-		_, _, infiles, outfiles, _ = exec.RunCmd(ConfigValues, cmdhash, CommandtoExec)
+		_, logfile, infiles, outfiles, symlinks,  _ = exec.RunCmd(ConfigValues, cmdhash, CommandtoExec)
 	}
 }

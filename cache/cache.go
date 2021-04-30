@@ -9,6 +9,7 @@ import(
     "os"
     "os/exec"
     "strings"
+    "bufio"
 )
 
 func Greet() {
@@ -63,14 +64,14 @@ func FindManifest(config config.Config, cmdhash string)(string, error){
     return "", nil
 }
 
-func Create(config config.Config, inFile []string, outFile []string, manifestfile string)(error){
+func Create(config config.Config, logFile string, inFile []string, outFile []string, symLinks [][2]string, manifestfile string)(error){
     // create manifest file and copy outputfiles to cache
 
     // manifestfile is retrieved from FindManifest
     // create manifest file
     infile, _ := utils.ConverFilesToRelativePath(config, inFile)
     outfile, _ := utils.ConverFilesToRelativePath(config, outFile)
-    err := manifest.SaveManifestFile(config, infile, outfile, manifestfile)
+    err := manifest.SaveManifestFile(config, logFile, infile, outfile, symLinks, manifestfile)
     if err != nil{
         return err
     }
@@ -89,15 +90,16 @@ func Create(config config.Config, inFile []string, outFile []string, manifestfil
         if filepath.IsAbs(ofile){
             continue
         }
-        fullPath := filepath.Join(dirOfCachedOutputFiles, filepath.Dir(ofile))
-        if !utils.Exists(fullPath){
-            err = os.MkdirAll(fullPath, 0775)
-            if err != nil{
-                return err
-            }
+        target := filepath.Join(dirOfCachedOutputFiles, strings.Replace(ofile, "/", ".", -1))
+        cpCmd := exec.Command("cp", filepath.Join(config.BaseDir, ofile), target)
+        err = cpCmd.Run()
+        if err != nil{
+            return err
         }
-        cpCmd := exec.Command("cp", filepath.Join(config.BaseDir, ofile),
-                              filepath.Join(fullPath, filepath.Base(ofile)))
+    }
+    if logFile != "" && utils.Exists(logFile){
+        cpCmd := exec.Command("cp", logFile,
+                              filepath.Join(dirOfCachedOutputFiles, filepath.Base(logFile)))
         err = cpCmd.Run()
         if err != nil{
             return err
@@ -117,7 +119,7 @@ func CopyOut(config config.Config, manifestFile string)(error){
         if filepath.IsAbs(outputFile[0]){
             continue
         }
-        srcFile := filepath.Join(dirOfCachedOutputFiles, outputFile[0])
+        srcFile := filepath.Join(dirOfCachedOutputFiles, strings.Replace(outputFile[0], "/", ".", -1))
         tgtFile := filepath.Join(config.BaseDir, outputFile[0])
         dirOfTgt := filepath.Dir(tgtFile)
         if !utils.Exists(dirOfTgt){
@@ -133,8 +135,26 @@ func CopyOut(config config.Config, manifestFile string)(error){
             return err
         }
     }
+    for _, symLink := range manifestdata.SymLink{
+        os.Symlink(symLink[1], filepath.Join(config.BaseDir, symLink[0]))
+    }
+    // print out log file
+    if manifestdata.LogFile != ""{
+        logFile := filepath.Join(dirOfCachedOutputFiles, manifestdata.LogFile)
+        if utils.Exists(logFile){
+            file, err := os.Open(logFile)
+            if err != nil{
+                fmt.Printf("Failed to open %v\n", logFile)
+            }else{
+                scanner := bufio.NewScanner(file)
+                scanner.Split(bufio.ScanLines)
+                for scanner.Scan() {
+                    fmt.Println(scanner.Text())
+                }
+            }
+        }
+    }
     return nil
-
 }
 
 func Verify(config config.Config, manifestFile string)(bool){
