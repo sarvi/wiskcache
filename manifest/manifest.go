@@ -56,29 +56,44 @@ func MatchHash(file string, hash string)(string, error){
 func GenerateManifest(logFile string, inputFileList []string, outputFileList []string, symLinks [][2]string, baseDirOfWorkspace string)(FileManifest){
     manifest := FileManifest{InputFile:[][]string{}, OutputFile:[][]string{}, SymLink:[][]string{}, LogFile:""}
     manifest.LogFile = filepath.Base(logFile)
-    for _, file := range inputFileList{
-        fullpath := file
-        if !filepath.IsAbs(fullpath){ 
-            fullpath = filepath.Join(baseDirOfWorkspace, file)
+    done := make(chan bool, 1)
+    go func(){
+        for _, file := range inputFileList{
+            fullpath := file
+            if !filepath.IsAbs(fullpath){
+                fullpath = filepath.Join(baseDirOfWorkspace, file)
+            }
+            hash, err := GetHash(fullpath)
+            if err == nil{
+                manifest.InputFile = append(manifest.InputFile, []string{file, hash})
+            }
         }
-        hash, err := GetHash(fullpath)
-        if err == nil{
-            manifest.InputFile = append(manifest.InputFile, []string{file, hash})
+        done <- true
+    }()
+    <- done
+
+    go func(){
+        for _, file := range outputFileList{
+            fullpath := file
+            if !filepath.IsAbs(fullpath){
+                fullpath = filepath.Join(baseDirOfWorkspace, file)
+            }
+            hash, err := GetHash(fullpath)
+            if err == nil{
+                manifest.OutputFile = append(manifest.OutputFile, []string{file, hash})
+            }
         }
-    } 
-    for _, file := range outputFileList{
-        fullpath := file
-        if !filepath.IsAbs(fullpath){ 
-            fullpath = filepath.Join(baseDirOfWorkspace, file)
+        done <- true
+    }()
+    <- done
+
+    go func(){
+        for _, symlink := range symLinks{
+            manifest.SymLink = append(manifest.SymLink, []string{symlink[0], symlink[1]})
         }
-        hash, err := GetHash(fullpath)
-        if err == nil{
-            manifest.OutputFile = append(manifest.OutputFile, []string{file, hash})
-        }
-    } 
-    for _, symlink := range symLinks{
-        manifest.SymLink = append(manifest.SymLink, []string{symlink[0], symlink[1]})
-    } 
+        done <- true
+    }()
+    <- done
     return manifest
 }
 

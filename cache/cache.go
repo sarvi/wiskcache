@@ -9,7 +9,7 @@ import(
     "os"
     "os/exec"
     "strings"
-    "bufio"
+    "io"
 )
 
 func Greet() {
@@ -85,26 +85,41 @@ func Create(config config.Config, logFile string, inFile []string, outFile []str
             return err
         }
     }
-    for _, ofile := range outfile{
-        // full path means it's not a file in workspace
-        if filepath.IsAbs(ofile){
-            continue
+    done := make(chan bool, 1)
+    go func(){
+        for _, ofile := range outfile{
+            // full path means it's not a file in workspace
+            if filepath.IsAbs(ofile){
+                continue
+            }
+            target := filepath.Join(dirOfCachedOutputFiles, strings.Replace(ofile, "/", ".", -1))
+            fmt.Printf("Copying %v to %v", filepath.Join(config.BaseDir, ofile), target)
+            cpCmd := exec.Command("cp", filepath.Join(config.BaseDir, ofile), target)
+            err = cpCmd.Run()
+            if err != nil{
+                break
+            }
         }
-        target := filepath.Join(dirOfCachedOutputFiles, strings.Replace(ofile, "/", ".", -1))
-        cpCmd := exec.Command("cp", filepath.Join(config.BaseDir, ofile), target)
-        err = cpCmd.Run()
-        if err != nil{
-            return err
-        }
+        done <- true
+    }()
+    <-done
+    if err != nil{
+        return err
     }
-    if logFile != "" && utils.Exists(logFile){
-        cpCmd := exec.Command("cp", logFile,
-                              filepath.Join(dirOfCachedOutputFiles, filepath.Base(logFile)))
-        err = cpCmd.Run()
-        if err != nil{
-            return err
+
+    go func(){
+        if logFile != "" && utils.Exists(logFile){
+            cpCmd := exec.Command("cp", logFile,
+                                  filepath.Join(dirOfCachedOutputFiles, filepath.Base(logFile)))
+            err = cpCmd.Run()
         }
+        done <- true
+    }()
+    <-done
+    if err != nil{
+        return err
     }
+
     return nil
 }
 
@@ -114,30 +129,44 @@ func CopyOut(config config.Config, manifestFile string)(error){
     dirOfCachedOutputFiles := filepath.Join(filepath.Dir(manifestFile),
                                             strings.Replace(filepath.Base(manifestFile), "manifest.", "", 1))
     manifestdata, _ := manifest.ReadManifest(manifestFile)
-    for _, outputFile := range manifestdata.OutputFile{
-        // if outputFile is abs path, it's not a file in workspace then
-        if filepath.IsAbs(outputFile[0]){
-            continue
-        }
-        srcFile := filepath.Join(dirOfCachedOutputFiles, strings.Replace(outputFile[0], "/", ".", -1))
-        tgtFile := filepath.Join(config.BaseDir, outputFile[0])
-        dirOfTgt := filepath.Dir(tgtFile)
-        if !utils.Exists(dirOfTgt){
-            err = os.MkdirAll(dirOfTgt, 0775)
+    done := make(chan bool, 1)
+    go func(){
+        for _, outputFile := range manifestdata.OutputFile{
+            // if outputFile is abs path, it's not a file in workspace then
+            if filepath.IsAbs(outputFile[0]){
+                continue
+            }
+            srcFile := filepath.Join(dirOfCachedOutputFiles, strings.Replace(outputFile[0], "/", ".", -1))
+            tgtFile := filepath.Join(config.BaseDir, outputFile[0])
+            dirOfTgt := filepath.Dir(tgtFile)
+            if !utils.Exists(dirOfTgt){
+                err = os.MkdirAll(dirOfTgt, 0775)
+                if err != nil{
+                    break
+                }
+            }
+            fmt.Printf("Copying %v to %v\n", srcFile, tgtFile)
+            cpCmd := exec.Command("cp", srcFile, tgtFile)
+            err = cpCmd.Run()
             if err != nil{
-                return err
+                break
             }
         }
-        fmt.Printf("Copying %v to %v\n", srcFile, tgtFile)
-        cpCmd := exec.Command("cp", srcFile, tgtFile)
-        err = cpCmd.Run()
-        if err != nil{
-            return err
+        done <- true
+    }()
+    <- done
+    if err != nil{
+        return err
+    }
+
+    go func(){
+        for _, symLink := range manifestdata.SymLink{
+            os.Symlink(symLink[1], filepath.Join(config.BaseDir, symLink[0]))
         }
-    }
-    for _, symLink := range manifestdata.SymLink{
-        os.Symlink(symLink[1], filepath.Join(config.BaseDir, symLink[0]))
-    }
+        done <- true
+    }()
+    <- done
+
     // print out log file
     if manifestdata.LogFile != ""{
         logFile := filepath.Join(dirOfCachedOutputFiles, manifestdata.LogFile)
@@ -146,10 +175,9 @@ func CopyOut(config config.Config, manifestFile string)(error){
             if err != nil{
                 fmt.Printf("Failed to open %v\n", logFile)
             }else{
-                scanner := bufio.NewScanner(file)
-                scanner.Split(bufio.ScanLines)
-                for scanner.Scan() {
-                    fmt.Println(scanner.Text())
+                _, err = io.Copy(os.Stdout, file)
+                if err != nil {
+                    fmt.Printf("io.Copy failed  %v\n", err)
                 }
             }
         }
