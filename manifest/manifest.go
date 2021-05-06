@@ -11,11 +11,14 @@ import (
     "io/ioutil"
     "path/filepath"
     "config"
+    "sync"
 )
 
 type FileManifest struct{
     InputFile [][]string `json:"inputfile"`
     OutputFile [][]string `json:"outputfile"`
+    SymLink [][]string `json:"symlink"`
+    LogFile string `json:"logfile"`
 }
 
 func GetHash(file string)(string, error){
@@ -51,28 +54,49 @@ func MatchHash(file string, hash string)(string, error){
     }
 }
 
-func GenerateManifest(inputFileList []string, outputFileList []string, baseDirOfWorkspace string)(FileManifest){
-    manifest := FileManifest{InputFile:[][]string{}, OutputFile:[][]string{}}
+func GenerateManifest(logFile string, inputFileList []string, outputFileList []string, symLinks [][2]string, baseDirOfWorkspace string)(FileManifest){
+    manifest := FileManifest{InputFile:[][]string{}, OutputFile:[][]string{}, SymLink:[][]string{}, LogFile:""}
+    manifest.LogFile = filepath.Base(logFile)
+    var wg sync.WaitGroup
     for _, file := range inputFileList{
-        fullpath := file
-        if !filepath.IsAbs(fullpath){ 
-            fullpath = filepath.Join(baseDirOfWorkspace, file)
-        }
-        hash, err := GetHash(fullpath)
-        if err == nil{
-            manifest.InputFile = append(manifest.InputFile, []string{file, hash})
-        }
-    } 
+        wg.Add(1)
+        go func(file string){
+            defer wg.Done()
+            fullpath := file
+            if !filepath.IsAbs(fullpath){
+                fullpath = filepath.Join(baseDirOfWorkspace, file)
+            }
+            hash, err := GetHash(fullpath)
+            if err == nil{
+                manifest.InputFile = append(manifest.InputFile, []string{file, hash})
+            }
+        }(file)
+    }
+
     for _, file := range outputFileList{
-        fullpath := file
-        if !filepath.IsAbs(fullpath){ 
-            fullpath = filepath.Join(baseDirOfWorkspace, file)
-        }
-        hash, err := GetHash(fullpath)
-        if err == nil{
-            manifest.OutputFile = append(manifest.OutputFile, []string{file, hash})
-        }
-    } 
+        wg.Add(1)
+        go func(file string){
+            defer wg.Done()
+            fullpath := file
+            if !filepath.IsAbs(fullpath){
+               fullpath = filepath.Join(baseDirOfWorkspace, file)
+            }
+            hash, err := GetHash(fullpath)
+            if err == nil{
+                manifest.OutputFile = append(manifest.OutputFile, []string{file, hash})
+            }
+        }(file)
+    }
+
+    for _, symlink := range symLinks{
+        wg.Add(1)
+        go func(symlink [2]string){
+            defer wg.Done()
+            manifest.SymLink = append(manifest.SymLink, []string{symlink[0], symlink[1]})
+        }(symlink)
+    }
+    wg.Wait()
+
     return manifest
 }
 
@@ -90,14 +114,14 @@ func ReadManifest(manifestFile string)(FileManifest, error){
     }
 }
 
-func SaveManifestFile(config config.Config, inputFileList []string, outputFileList []string, manifestFile string)(error){
+func SaveManifestFile(config config.Config, logFile string, inputFileList []string, outputFileList []string, symLinks [][2]string, manifestFile string)(error){
     // manifestFile is retrieved from cache.FindManifest
 
     var err error
     // if an output file is in inputFileList as well, remove it from inputFileList
     inputFileList = utils.RemoveFromArray(inputFileList, outputFileList)
 
-    manifest := GenerateManifest(inputFileList, outputFileList, config.BaseDir)
+    manifest := GenerateManifest(logFile, inputFileList, outputFileList, symLinks, config.BaseDir)
     jsondata, _ := json.MarshalIndent(manifest, "", " ")
     cacheDir := filepath.Dir(manifestFile)
     if !utils.Exists(cacheDir){
