@@ -94,7 +94,7 @@ func Create(config config.Config, logFile string, inFile []string, outFile []str
         }
         target := filepath.Join(dirOfCachedOutputFiles, strings.Replace(ofile, "/", ".", -1))
         source := filepath.Join(config.BaseDir, ofile)
-        fmt.Printf("Copying %v to %v", source, target)
+        fmt.Printf("Copying %v to %v\n", source, target)
         wg.Add(1)
         go func(src string, tgt string){
             defer wg.Done()
@@ -111,8 +111,9 @@ func Create(config config.Config, logFile string, inFile []string, outFile []str
     }
 
     if logFile != "" && utils.Exists(logFile){
-        cpCmd := exec.Command("cp", logFile,
-                              filepath.Join(dirOfCachedOutputFiles, filepath.Base(logFile)))
+        tgtLogfile := filepath.Join(dirOfCachedOutputFiles, filepath.Base(logFile))
+        cpCmd := exec.Command("cp", logFile, tgtLogfile)
+        fmt.Printf("Copying %v to %v\n", logFile, tgtLogfile)
         err = cpCmd.Run()
         if err != nil{
             return err
