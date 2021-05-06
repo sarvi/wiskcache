@@ -11,6 +11,7 @@ import (
     "io/ioutil"
     "path/filepath"
     "config"
+    "sync"
 )
 
 type FileManifest struct{
@@ -56,9 +57,11 @@ func MatchHash(file string, hash string)(string, error){
 func GenerateManifest(logFile string, inputFileList []string, outputFileList []string, symLinks [][2]string, baseDirOfWorkspace string)(FileManifest){
     manifest := FileManifest{InputFile:[][]string{}, OutputFile:[][]string{}, SymLink:[][]string{}, LogFile:""}
     manifest.LogFile = filepath.Base(logFile)
-    done := make(chan bool, 1)
-    go func(){
-        for _, file := range inputFileList{
+    var wg sync.WaitGroup
+    for _, file := range inputFileList{
+        wg.Add(1)
+        go func(file string){
+            defer wg.Done()
             fullpath := file
             if !filepath.IsAbs(fullpath){
                 fullpath = filepath.Join(baseDirOfWorkspace, file)
@@ -67,33 +70,33 @@ func GenerateManifest(logFile string, inputFileList []string, outputFileList []s
             if err == nil{
                 manifest.InputFile = append(manifest.InputFile, []string{file, hash})
             }
-        }
-        done <- true
-    }()
-    <- done
+        }(file)
+    }
 
-    go func(){
-        for _, file := range outputFileList{
+    for _, file := range outputFileList{
+        wg.Add(1)
+        go func(file string){
+            defer wg.Done()
             fullpath := file
             if !filepath.IsAbs(fullpath){
-                fullpath = filepath.Join(baseDirOfWorkspace, file)
+               fullpath = filepath.Join(baseDirOfWorkspace, file)
             }
             hash, err := GetHash(fullpath)
             if err == nil{
                 manifest.OutputFile = append(manifest.OutputFile, []string{file, hash})
             }
-        }
-        done <- true
-    }()
-    <- done
+        }(file)
+    }
 
-    go func(){
-        for _, symlink := range symLinks{
+    for _, symlink := range symLinks{
+        wg.Add(1)
+        go func(symlink [2]string){
+            defer wg.Done()
             manifest.SymLink = append(manifest.SymLink, []string{symlink[0], symlink[1]})
-        }
-        done <- true
-    }()
-    <- done
+        }(symlink)
+    }
+    wg.Wait()
+
     return manifest
 }
 

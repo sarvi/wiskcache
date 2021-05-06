@@ -10,6 +10,7 @@ import(
     "os/exec"
     "strings"
     "io"
+    "sync"
 )
 
 func Greet() {
@@ -85,39 +86,37 @@ func Create(config config.Config, logFile string, inFile []string, outFile []str
             return err
         }
     }
-    done := make(chan bool, 1)
-    go func(){
-        for _, ofile := range outfile{
-            // full path means it's not a file in workspace
-            if filepath.IsAbs(ofile){
-                continue
-            }
-            target := filepath.Join(dirOfCachedOutputFiles, strings.Replace(ofile, "/", ".", -1))
-            fmt.Printf("Copying %v to %v", filepath.Join(config.BaseDir, ofile), target)
-            cpCmd := exec.Command("cp", filepath.Join(config.BaseDir, ofile), target)
-            err = cpCmd.Run()
-            if err != nil{
-                break
-            }
+    var wg sync.WaitGroup
+    for _, ofile := range outfile{
+        // full path means it's not a file in workspace
+        if filepath.IsAbs(ofile){
+            continue
         }
-        done <- true
-    }()
-    <-done
+        target := filepath.Join(dirOfCachedOutputFiles, strings.Replace(ofile, "/", ".", -1))
+        source := filepath.Join(config.BaseDir, ofile)
+        fmt.Printf("Copying %v to %v", source, target)
+        wg.Add(1)
+        go func(src string, tgt string){
+            defer wg.Done()
+            cpCmd := exec.Command("cp", src, tgt)
+            cperr := cpCmd.Run()
+            if cperr != nil{
+                err = cperr
+            }
+        }(source, target)
+    }
+    wg.Wait()
     if err != nil{
         return err
     }
 
-    go func(){
-        if logFile != "" && utils.Exists(logFile){
-            cpCmd := exec.Command("cp", logFile,
-                                  filepath.Join(dirOfCachedOutputFiles, filepath.Base(logFile)))
-            err = cpCmd.Run()
+    if logFile != "" && utils.Exists(logFile){
+        cpCmd := exec.Command("cp", logFile,
+                              filepath.Join(dirOfCachedOutputFiles, filepath.Base(logFile)))
+        err = cpCmd.Run()
+        if err != nil{
+            return err
         }
-        done <- true
-    }()
-    <-done
-    if err != nil{
-        return err
     }
 
     return nil
@@ -129,43 +128,45 @@ func CopyOut(config config.Config, manifestFile string)(error){
     dirOfCachedOutputFiles := filepath.Join(filepath.Dir(manifestFile),
                                             strings.Replace(filepath.Base(manifestFile), "manifest.", "", 1))
     manifestdata, _ := manifest.ReadManifest(manifestFile)
-    done := make(chan bool, 1)
-    go func(){
-        for _, outputFile := range manifestdata.OutputFile{
-            // if outputFile is abs path, it's not a file in workspace then
-            if filepath.IsAbs(outputFile[0]){
-                continue
-            }
-            srcFile := filepath.Join(dirOfCachedOutputFiles, strings.Replace(outputFile[0], "/", ".", -1))
-            tgtFile := filepath.Join(config.BaseDir, outputFile[0])
-            dirOfTgt := filepath.Dir(tgtFile)
-            if !utils.Exists(dirOfTgt){
-                err = os.MkdirAll(dirOfTgt, 0775)
-                if err != nil{
-                    break
-                }
-            }
-            fmt.Printf("Copying %v to %v\n", srcFile, tgtFile)
-            cpCmd := exec.Command("cp", srcFile, tgtFile)
-            err = cpCmd.Run()
+    var wg sync.WaitGroup
+    for _, outputFile := range manifestdata.OutputFile{
+        // if outputFile is abs path, it's not a file in workspace then
+        if filepath.IsAbs(outputFile[0]){
+            continue
+        }
+        srcFile := filepath.Join(dirOfCachedOutputFiles, strings.Replace(outputFile[0], "/", ".", -1))
+        tgtFile := filepath.Join(config.BaseDir, outputFile[0])
+        dirOfTgt := filepath.Dir(tgtFile)
+        if !utils.Exists(dirOfTgt){
+            err = os.MkdirAll(dirOfTgt, 0775)
             if err != nil{
                 break
             }
         }
-        done <- true
-    }()
-    <- done
+        fmt.Printf("Copying %v to %v\n", srcFile, tgtFile)
+        wg.Add(1)
+        go func(srcFile string, tgtFile string){
+            defer wg.Done()
+            cpCmd := exec.Command("cp", srcFile, tgtFile)
+            cperr := cpCmd.Run()
+            if cperr != nil{
+                err = cperr
+            }
+        }(srcFile, tgtFile)
+    }
+    wg.Wait()
     if err != nil{
         return err
     }
 
-    go func(){
-        for _, symLink := range manifestdata.SymLink{
+    for _, symLink := range manifestdata.SymLink{
+        wg.Add(1)
+        go func(symLink []string){
+            defer wg.Done()
             os.Symlink(symLink[1], filepath.Join(config.BaseDir, symLink[0]))
-        }
-        done <- true
-    }()
-    <- done
+        }(symLink)
+    }
+    wg.Wait()
 
     // print out log file
     if manifestdata.LogFile != ""{
