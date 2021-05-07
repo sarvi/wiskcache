@@ -9,6 +9,15 @@ import (
 	"strings"
 )
 
+func Remove(s []string, r string) []string {
+	for i, v := range s {
+		if v == r {
+			return append(s[:i], s[i+1:]...)
+		}
+	}
+	return s
+}
+
 func GetEnvironMap() (result map[string]string) {
 	result = map[string]string{}
 	for _, v := range os.Environ() {
@@ -59,24 +68,24 @@ func ConverFilesToRelativePath(config config.Config, infile []string) ([]string,
 	return outfile, err
 }
 
-func RemoveFromArray(list1 []string, list2 []string)([]string){
+func RemoveFromArray(list1 []string, list2 []string) []string {
 	// remove list1's element if it's in list2
 	list1map := make(map[string]bool)
-	for _, key := range list1{
+	for _, key := range list1 {
 		list1map[key] = true
 	}
 	list2map := make(map[string]bool)
-	for _, key := range list2{
+	for _, key := range list2 {
 		list2map[key] = true
 	}
-	for key, _ := range list1map{
-		if _, ok := list2map[key]; ok{
+	for key, _ := range list1map {
+		if _, ok := list2map[key]; ok {
 			delete(list1map, key)
 		}
 	}
 	keys := []string{}
-	for _, key := range list1{
-		if _, ok := list1map[key]; ok{
+	for _, key := range list1 {
+		if _, ok := list1map[key]; ok {
 			keys = append(keys, key)
 		}
 	}

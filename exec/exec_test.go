@@ -8,7 +8,10 @@ import (
 )
 
 func TestRunCmd(t *testing.T) {
-	conf := config.Config{BaseDir: "/ws/sarvi-sjc/wiskcache/exec"}
+	conf := config.Config{
+		BaseDir:      "/ws/sarvi-sjc/wiskcache/exec",
+		WiskTrackLib: "/ws/sarvi-sjc/wisktrack/${LIB}/libwisktrack.so",
+	}
 	testCases := []struct {
 		d   string
 		cmd []string
@@ -20,6 +23,10 @@ func TestRunCmd(t *testing.T) {
 		{
 			d:   "gcc compile",
 			cmd: []string{"gcc", "-v", "-o", "tests/hello.o", "tests/hello.c"},
+		},
+		{
+			d:   "move rename",
+			cmd: []string{"/bin/bash", "tests/bashmove.sh"},
 		},
 	}
 	for _, tc := range testCases {

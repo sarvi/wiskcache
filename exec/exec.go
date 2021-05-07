@@ -66,6 +66,28 @@ func ParseWiskTrackFile(trackfile string) (infiles []string, outfiles []string, 
 			} else {
 				panic(ok)
 			}
+		} else if parts[1] == "RENAMES" {
+			json.Unmarshal([]byte(parts[2]), &jsondata)
+			if opfile, ok := jsondata[0].(string); ok {
+				if _, ok := outmap[opfile]; ok {
+					delete(outmap, opfile)
+					outfiles = utils.Remove(outfiles, opfile)
+					if opfile, ok := jsondata[1].(string); ok {
+						if _, ok := outmap[opfile]; !ok {
+							outmap[opfile] = ""
+							outfiles = append(outfiles, opfile)
+						} else {
+							panic(ok)
+						}
+					} else {
+						panic(ok)
+					}
+				} else {
+					panic(ok)
+				}
+			} else {
+				panic(ok)
+			}
 		}
 	}
 	// fmt.Println("Infiles: ", infiles)
