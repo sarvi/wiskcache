@@ -56,9 +56,19 @@ func MatchHash(file string, hash string)(string, error){
 
 func GenerateManifest(logFile string, inputFileList []string, outputFileList []string, symLinks [][2]string, baseDirOfWorkspace string)(FileManifest){
     manifest := FileManifest{InputFile:[][]string{}, OutputFile:[][]string{}, SymLink:[][]string{}, LogFile:""}
-    manifest.LogFile = filepath.Base(logFile)
+    if logFile != "" {
+        manifest.LogFile = filepath.Base(logFile)
+    }else{
+        manifest.LogFile = ""
+    }
+
+    hashOfFile := make(map[string]string)
+    allFiles := []string{}
+    allFiles = append(allFiles, inputFileList...)
+    allFiles = append(allFiles, outputFileList...)
     var wg sync.WaitGroup
-    for _, file := range inputFileList{
+    var mutex = &sync.Mutex{}
+    for _, file := range allFiles{
         wg.Add(1)
         go func(file string){
             defer wg.Done()
@@ -68,34 +78,26 @@ func GenerateManifest(logFile string, inputFileList []string, outputFileList []s
             }
             hash, err := GetHash(fullpath)
             if err == nil{
-                manifest.InputFile = append(manifest.InputFile, []string{file, hash})
+                mutex.Lock()
+                hashOfFile[file] = hash
+                mutex.Unlock()
             }
         }(file)
     }
+    wg.Wait()
 
+    for _, file := range inputFileList{
+        manifest.InputFile = append(manifest.InputFile, []string{file, hashOfFile[file]})
+    }
     for _, file := range outputFileList{
-        wg.Add(1)
-        go func(file string){
-            defer wg.Done()
-            fullpath := file
-            if !filepath.IsAbs(fullpath){
-               fullpath = filepath.Join(baseDirOfWorkspace, file)
-            }
-            hash, err := GetHash(fullpath)
-            if err == nil{
-                manifest.OutputFile = append(manifest.OutputFile, []string{file, hash})
-            }
-        }(file)
+        if !filepath.IsAbs(file){
+             manifest.OutputFile = append(manifest.OutputFile, []string{file, hashOfFile[file]})
+        }
     }
 
     for _, symlink := range symLinks{
-        wg.Add(1)
-        go func(symlink [2]string){
-            defer wg.Done()
-            manifest.SymLink = append(manifest.SymLink, []string{symlink[0], symlink[1]})
-        }(symlink)
+        manifest.SymLink = append(manifest.SymLink, []string{symlink[0], symlink[1]})
     }
-    wg.Wait()
 
     return manifest
 }
@@ -114,7 +116,7 @@ func ReadManifest(manifestFile string)(FileManifest, error){
     }
 }
 
-func SaveManifestFile(config config.Config, logFile string, inputFileList []string, outputFileList []string, symLinks [][2]string, manifestFile string)(error){
+func SaveManifestFile(config config.Config, logFile string, inputFileList []string, outputFileList []string, symLinks [][2]string, manifestFile string)(string, error){
     // manifestFile is retrieved from cache.FindManifest
 
     var err error
@@ -123,20 +125,25 @@ func SaveManifestFile(config config.Config, logFile string, inputFileList []stri
 
     manifest := GenerateManifest(logFile, inputFileList, outputFileList, symLinks, config.BaseDir)
     jsondata, _ := json.MarshalIndent(manifest, "", " ")
+    baseOfCacheDir := filepath.Dir(filepath.Dir(manifestFile))
+    if filepath.Base(manifestFile) == "manifest.base" {
+        manifestFile = filepath.Join(baseOfCacheDir, "partial." + utils.HashOfFileAndHash(manifest.InputFile[:1]),
+                                     "manifest." + manifest.InputFile[0][1])
+    }
     cacheDir := filepath.Dir(manifestFile)
     if !utils.Exists(cacheDir){
         err = os.MkdirAll(cacheDir, 0775)
         if err != nil{
-            return err
+            return manifestFile, err
         }
     } 
     err = ioutil.WriteFile(manifestFile, jsondata, 0664)
     if err != nil{
-        return err
+        return manifestFile, err
     }
     hashOfManifestfile, _ := GetHash(manifestFile)
     // make symlink
-    manifestWithHash := filepath.Join(cacheDir, "manifest." + hashOfManifestfile)
+    manifestWithHash := filepath.Join(baseOfCacheDir, "manifest." + hashOfManifestfile)
     if !utils.Exists(manifestWithHash){
         os.Rename(manifestFile, manifestWithHash)
     }else{
@@ -144,5 +151,5 @@ func SaveManifestFile(config config.Config, logFile string, inputFileList []stri
     }
     relativePath, _ := utils.RelativePath(cacheDir, manifestWithHash)
     os.Symlink(relativePath, manifestFile)
-    return nil
+    return manifestFile, nil
 }

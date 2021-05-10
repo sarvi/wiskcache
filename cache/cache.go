@@ -27,63 +27,65 @@ func FindManifest(config config.Config, cmdhash string)(string, error){
             return "", err
         }
     }
-    manifestFile := filepath.Join(cacheDir, "manifest.base")
-    mismatch := false
+    allmanifestfiles, _ := utils.ReadDir(cacheDir, "manifest.")
+    if len(allmanifestfiles) == 0 {
+       return filepath.Join(cacheDir, "partial.base", "manifest.base"), nil
+    }
     manif := manifest.FileManifest{InputFile:[][]string{}, OutputFile:[][]string{}}
+    manifestFile := filepath.Join(cacheDir, allmanifestfiles[0])
+    manifestFromFile, _ := manifest.ReadManifest(manifestFile)
+    for _, inputFile := range manifestFromFile.InputFile{
+        fullpath := inputFile[0]
+        if !filepath.IsAbs(fullpath){
+            fullpath = filepath.Join(config.BaseDir, fullpath)
+        }
+        hash, _ := manifest.GetHash(fullpath)
+        manif.InputFile = append(manif.InputFile, []string{inputFile[0], hash})
+    }
+    mismatch := false
     for{
-        if !utils.Exists(manifestFile){
-            return manifestFile, nil
-        }else{
-            mismatch = false
-            manifestFromFile, _ := manifest.ReadManifest(manifestFile)
-            
-            for _, inputFile := range manifestFromFile.InputFile{
-                fullpath := inputFile[0]
-                if !filepath.IsAbs(fullpath){
-                    fullpath = filepath.Join(config.BaseDir, fullpath)
-                }
-                if !utils.Exists(fullpath){
-                    manifestFile = filepath.Join(cacheDir, fmt.Sprintf("manifest.%v", inputFile[1]))
-                    return manifestFile, nil
-                }else{
-                    hash, _ := manifest.GetHash(fullpath)
-                    manif.InputFile = append(manif.InputFile, []string{inputFile[0], hash})
-                }
-            }
-            for inputIndex, inputFile := range manifestFromFile.InputFile{
-                if manif.InputFile[inputIndex][1] != inputFile[1]{
-                    manifestFile = filepath.Join(cacheDir, fmt.Sprintf("manifest.%v", inputFile[1]))
-                    mismatch = true
-                    break
-                }
-            }
-            if mismatch == false{
-                return manifestFile, nil
+       for inputIndex, inputFile := range manifestFromFile.InputFile{
+           if manif.InputFile[inputIndex][0] != inputFile[0] ||
+              manif.InputFile[inputIndex][1] != inputFile[1]{
+                manifestFile = filepath.Join(cacheDir, "partial." + utils.HashOfFileAndHash(manif.InputFile[:inputIndex+1]),
+                                             fmt.Sprintf("manifest.%v", manif.InputFile[inputIndex][1]))
+                mismatch = true
+                break
             }
         }
+        if mismatch == false{
+            return manifestFile, nil
+        }
+
+        if !utils.Exists(manifestFile){
+            return manifestFile, nil
+        }
+        manifestFromFile, _ = manifest.ReadManifest(manifestFile)
+        mismatch = false
     }
     return "", nil
 }
 
-func Create(config config.Config, logFile string, inFile []string, outFile []string, symLinks [][2]string, manifestfile string)(error){
+func Create(config config.Config, logFile string, inFile []string, outFile []string, symLinks [][2]string, manifestfile string)(string, error){
     // create manifest file and copy outputfiles to cache
 
     // manifestfile is retrieved from FindManifest
     // create manifest file
     infile, _ := utils.ConverFilesToRelativePath(config, inFile)
     outfile, _ := utils.ConverFilesToRelativePath(config, outFile)
-    err := manifest.SaveManifestFile(config, logFile, infile, outfile, symLinks, manifestfile)
+    manifestfile, err := manifest.SaveManifestFile(config, logFile, infile, outfile, symLinks, manifestfile)
+    manifestfile, err = filepath.EvalSymlinks(manifestfile)
     if err != nil{
-        return err
+        return manifestfile, err
     }
 
     // copy outputfiles to cache
     dirOfCachedOutputFiles := filepath.Join(filepath.Dir(manifestfile),
-                                            strings.Replace(filepath.Base(manifestfile), "manifest.", "", 1))
+                                            strings.Replace(filepath.Base(manifestfile), "manifest.", "content.", 1))
     if !utils.Exists(dirOfCachedOutputFiles){
         err = os.MkdirAll(dirOfCachedOutputFiles, 0775)
         if err != nil{
-            return err
+            return manifestfile, err
         }
     }
     var wg sync.WaitGroup
@@ -107,7 +109,7 @@ func Create(config config.Config, logFile string, inFile []string, outFile []str
     }
     wg.Wait()
     if err != nil{
-        return err
+        return manifestfile, err
     }
 
     if logFile != "" && utils.Exists(logFile){
@@ -116,18 +118,19 @@ func Create(config config.Config, logFile string, inFile []string, outFile []str
         fmt.Printf("Copying %v to %v\n", logFile, tgtLogfile)
         err = cpCmd.Run()
         if err != nil{
-            return err
+            return manifestfile, err
         }
     }
 
-    return nil
+    return manifestfile, nil
 }
 
 func CopyOut(config config.Config, manifestFile string)(error){
     // copy from cache
     var err error
+    manifestFile, _ = filepath.EvalSymlinks(manifestFile)
     dirOfCachedOutputFiles := filepath.Join(filepath.Dir(manifestFile),
-                                            strings.Replace(filepath.Base(manifestFile), "manifest.", "", 1))
+                                            strings.Replace(filepath.Base(manifestFile), "manifest.", "content.", 1))
     manifestdata, _ := manifest.ReadManifest(manifestFile)
     var wg sync.WaitGroup
     for _, outputFile := range manifestdata.OutputFile{

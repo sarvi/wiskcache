@@ -34,7 +34,7 @@ func main() {
 	_, cmdhash, _ := whash.CommandHash(ConfigValues, env, CommandtoExec)
 	if strings.HasPrefix(ConfigValues.Mode, "read") || ConfigValues.Mode == "verify" {
 		manifestFile, _ = cache.FindManifest(ConfigValues, cmdhash)
-		if ConfigValues.Mode != "verify" {
+		if utils.Exists(manifestFile) && ConfigValues.Mode != "verify" {
 			fmt.Printf("Found manifest: %v, copying out from cache ...\n", manifestFile)
 			cache.CopyOut(ConfigValues, manifestFile)
 			fmt.Println("Done!")
@@ -45,7 +45,7 @@ func main() {
 		_, logfile, infiles, outfiles, symlinks, _ = exec.RunCmd(ConfigValues, cmdhash, CommandtoExec)
 	}
 	if strings.Contains(ConfigValues.Mode, "write") && cmdexeced {
-		cache.Create(ConfigValues, logfile, infiles, outfiles, symlinks, manifestFile)
+		manifestFile, _ = cache.Create(ConfigValues, logfile, infiles, outfiles, symlinks, manifestFile)
 		fmt.Printf("\nCreated manifest: %v, copied output to cache\n", manifestFile)
 	}
 	if ConfigValues.Mode == "verify" && cmdexeced {
