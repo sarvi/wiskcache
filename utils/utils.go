@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"lukechampine.com/blake3"
 )
 
 func Remove(s []string, r string) []string {
@@ -90,4 +91,34 @@ func RemoveFromArray(list1 []string, list2 []string) []string {
 		}
 	}
 	return keys
+}
+
+
+func ReadDir(dirname string, startwith string)([]string, error) {
+	dir, err := os.Open(dirname)
+	if err != nil {
+		fmt.Printf("Failed opening directory: %s\n", err)
+		return nil, err
+	}
+	defer dir.Close()
+
+	list, _ := dir.Readdirnames(0) // 0 to read all files and folders
+	result := []string{}
+	for _, name := range list {
+		if startwith != "" && strings.HasPrefix(name, startwith){
+			result = append(result, name)
+		}
+	}
+	return result, nil
+}
+
+func HashOfFileAndHash(filelist [][]string)(string) {
+    filehashlist := []string{}
+    for _, file := range filelist{
+        filehashlist = append(filehashlist, file[0], file[1])
+    }
+    h := blake3.New(32, nil)
+    filehash := strings.Join(filehashlist, " ")
+    h.Write([]byte(filehash))
+    return fmt.Sprintf("%x", h.Sum(nil))
 }
