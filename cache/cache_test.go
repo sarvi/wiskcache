@@ -24,6 +24,7 @@ func TestIsLower(t *testing.T) {
 }
 
 func TestCopyOutInParallel(t *testing.T) {
+	fmt.Println("Test CopyOutINparallel")
 	cmd := exec.Command("fallocate", "-l", "1G", "/tmp/1gfile1")
 	err := cmd.Run()
         if err != nil{
@@ -65,46 +66,33 @@ func TestCopyOutInParallel(t *testing.T) {
 }
 
 func TestManifest(t *testing.T) {
+	fmt.Println("Test Manifest")
 	var config config.Config
 	config.CacheBaseDir = "/tmp/cache_testTestFindManifest"
 	cmdhash := "cmdhash001"
 	manifestFile, _ := FindManifest(config, cmdhash)
 	infiles := []string{"../test/hello.c", "../test/square.h", "../test/sum.h"}
-        outfiles := []string{"../test/hello.o"}
-        symlinks := [][2]string{}
+	outfiles := []string{"../test/hello.o"}
+	symlinks := [][2]string{}
 	if filepath.Base(manifestFile) == "manifest.base" {
 		cmd := exec.Command("touch", "../test/hello.o")
 		cmd.Run()
 		// test create a new manifest file
 		manifestFile, _ = Create(config, "", infiles, outfiles, symlinks, manifestFile)
-		if manifestFile != "/tmp/cache_testTestFindManifest/cmdhash001/manifest.403e4ce21cc1a8d2b887f3255db4559a9aa350034ac035ec90dd46e36c42e792" {
-			os.RemoveAll("/tmp/cache_testTestFindManifest")
+		if manifestFile != "/tmp/cache_testTestFindManifest/cmdhash001/manifest.21ba3c3e8d81bad2c995ba1b89b708e850f737914227001fb6d0fa2156cda1ea" {
 			t.Fail()
                 }
-		// test if partial.xxx/manifest.<hashofsublistfilesandhash> symlinks to parent dir's manifest file
-		if utils.Exists("/tmp/cache_testTestFindManifest/cmdhash001/partial.1feb0822dbb0ef198ae7453b23513045bd677ef4b4d80e48b10983c9618fa598/manifest.111ac4231fc677d05a106ea0dac0ea5b628b1e8a8e0af287e266cf11f7efe94c"){
-			manifestlink, _ := os.Readlink("/tmp/cache_testTestFindManifest/cmdhash001/partial.1feb0822dbb0ef198ae7453b23513045bd677ef4b4d80e48b10983c9618fa598/manifest.111ac4231fc677d05a106ea0dac0ea5b628b1e8a8e0af287e266cf11f7efe94c")
-			if manifestlink != "../manifest.403e4ce21cc1a8d2b887f3255db4559a9aa350034ac035ec90dd46e36c42e792" {
-				os.RemoveAll("/tmp/cache_testTestFindManifest")
-				t.Fail()
-			}
-		}else{
-			os.RemoveAll("/tmp/cache_testTestFindManifest")
-			t.Fail()
-		}
 		// test CopyOut from cache
 		if utils.Exists("../test/hello.o") {
 			os.Remove("../test/hello.o")
 		}
 		CopyOut(config, manifestFile)
 		if !utils.Exists("../test/hello.o") {
-			os.RemoveAll("/tmp/cache_testTestFindManifest")
 			t.Fail()
 		}
 		// test find cache
 	        manifestFile, _ = FindManifest(config, cmdhash)
-		if manifestFile != "/tmp/cache_testTestFindManifest/cmdhash001/manifest.403e4ce21cc1a8d2b887f3255db4559a9aa350034ac035ec90dd46e36c42e792" {
-			os.RemoveAll("/tmp/cache_testTestFindManifest")
+		if manifestFile != "/tmp/cache_testTestFindManifest/cmdhash001/manifest.21ba3c3e8d81bad2c995ba1b89b708e850f737914227001fb6d0fa2156cda1ea" {
 			t.Fail()
 		}
 		// modify one inFile
@@ -112,23 +100,111 @@ func TestManifest(t *testing.T) {
 		cmd.Run()
 		ioutil.WriteFile("../test/sum.h", []byte("hello\n"), 0644)
 	        manifestFile, _ = FindManifest(config, cmdhash)
-		fmt.Println(manifestFile)
+		// should no manifestFile found in cache
+		if utils.Exists(manifestFile) {
+			fmt.Printf("Found %v which should not be there\n", manifestFile)
+			t.Fail()
+		}
+		manifestFile, _ = Create(config, "", infiles, outfiles, symlinks, manifestFile)
 		cmd = exec.Command("cp", "../test/sum.h.bak", "../test/sum.h")
 		cmd.Run()
 		os.Remove("../test/sum.h.bak")
-		// should no manifestFile found in cache
-		if utils.Exists(manifestFile) {
-			os.RemoveAll("/tmp/cache_testTestFindManifest")
-			t.Fail()
-		}
 		// after revert back sum.bak, should find manifest in the cache 
 		manifestFile, _ = FindManifest(config, cmdhash)
-                if manifestFile != "/tmp/cache_testTestFindManifest/cmdhash001/manifest.403e4ce21cc1a8d2b887f3255db4559a9aa350034ac035ec90dd46e36c42e792" {
-                        os.RemoveAll("/tmp/cache_testTestFindManifest")
+		fmt.Println(manifestFile)
+                if manifestFile != "/tmp/cache_testTestFindManifest/cmdhash001/manifest.21ba3c3e8d81bad2c995ba1b89b708e850f737914227001fb6d0fa2156cda1ea" {
                         t.Fail()
                 }
         }else{
-		os.RemoveAll("/tmp/cache_testTestFindManifest")
+		t.Fail()
+	}
+	os.RemoveAll("/tmp/cache_testTestFindManifest")
+}
+
+func setUpTestFiles(src []string, tgt []string){
+	for f_index, srcFile := range src{
+		cmd := exec.Command("cp", srcFile, tgt[f_index])
+		cmd.Run()
+	}
+}
+
+func TestFindManifest(t *testing.T) {
+	fmt.Println("Test FindManifest")
+	var config config.Config
+	config.CacheBaseDir = "/tmp/cache_testTestFindManifest"
+	cmdhash := "cmdhash001"
+	manifestFile, _ := FindManifest(config, cmdhash)
+	infiles := []string{"../test/file1_to_test", "../test/file2_to_test", "../test/file3_to_test", "../test/file4_to_test", "../test/file5_to_test"}
+	setUpTestFiles([]string{"../test/1line","../test/1line","../test/1line","../test/1line","../test/1line"}, infiles)
+	outfiles := []string{"../test/hello.o"}
+	symlinks := [][2]string{}
+	if filepath.Base(manifestFile) == "manifest.base" {
+		cmd := exec.Command("touch", "../test/hello.o")
+		cmd.Run()
+		manifestFile, _ = Create(config, "", infiles, outfiles, symlinks, manifestFile)
+
+		// should find from cache
+		fmt.Println(" ... 1line, 1line, 1line, 1line, 1line ... ")
+		manifestFile, _ = FindManifest(config, cmdhash)
+		if !utils.Exists(manifestFile) {
+			t.Fail()
+		}else{
+			fmt.Println("Good: Found in cache")
+		}
+		// change 1st file
+		fmt.Println(" ... 2lines, 1line, 1line, 1line, 1line ... ")
+		cmd = exec.Command("cp", "../test/2lines", "../test/file1_to_test")
+		cmd.Run()
+		manifestFile, _ = FindManifest(config, cmdhash)
+		if utils.Exists(manifestFile) {
+			t.Fail()
+		}else{
+			fmt.Println("Good: Not found in cache")
+		}
+		manifestFile, _ = Create(config, "", infiles, outfiles, symlinks, manifestFile)
+		fmt.Println(" ... 2lines, 2lines, 1line, 1line, 1line ... ")
+		cmd = exec.Command("cp", "../test/2lines", "../test/file2_to_test")
+		cmd.Run()
+		manifestFile, _ = FindManifest(config, cmdhash)
+		if utils.Exists(manifestFile) {
+			t.Fail()
+		}else{
+			fmt.Println("Good: Not found in cache")
+		}
+		manifestFile, _ = Create(config, "", infiles, outfiles, symlinks, manifestFile)
+		fmt.Println(" ... 2lines, 2lines, 2lines, 1line, 1line ... ")
+		cmd = exec.Command("cp", "../test/2lines", "../test/file3_to_test")
+		cmd.Run()
+		manifestFile, _ = FindManifest(config, cmdhash)
+		if utils.Exists(manifestFile) {
+			t.Fail()
+		}else{
+			fmt.Println("Good: Not found in cache")
+		}
+		manifestFile1, _ := Create(config, "", infiles, outfiles, symlinks, manifestFile)
+		fmt.Println(" ... 2lines, 2lines, 3lines, 1line, 1line ... ")
+		cmd = exec.Command("cp", "../test/3lines", "../test/file3_to_test")
+		cmd.Run()
+		manifestFile, _ = FindManifest(config, cmdhash)
+		if utils.Exists(manifestFile) {
+			t.Fail()
+		}else{
+			fmt.Println("Good: Not found in cache")
+		}
+		manifestFile2, _ := Create(config, "", infiles, outfiles, symlinks, manifestFile)
+		// their first 2 infiles are same, the 3rd file is different
+		if filepath.Dir(manifestFile1) != filepath.Dir(manifestFile2) {
+			t.Fail()
+		}
+		// change file3 back to 1line, should hit cache
+		fmt.Println(" ... 2lines, 2lines, 1line, 1line, 1line, should hit cache ... ")
+		cmd = exec.Command("cp", "../test/1line", "../test/file3_to_test")
+		cmd.Run()
+		manifestFile, _ = FindManifest(config, cmdhash)
+		if !utils.Exists(manifestFile) {
+			t.Fail()
+		}
+	}else{
 		t.Fail()
 	}
 	os.RemoveAll("/tmp/cache_testTestFindManifest")

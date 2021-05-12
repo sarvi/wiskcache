@@ -27,28 +27,49 @@ func FindManifest(config config.Config, cmdhash string)(string, error){
             return "", err
         }
     }
-    allmanifestfiles, _ := utils.ReadDir(cacheDir, "manifest.")
-    if len(allmanifestfiles) == 0 {
-       return filepath.Join(cacheDir, "partial.base", "manifest.base"), nil
-    }
-    manif := manifest.FileManifest{InputFile:[][]string{}, OutputFile:[][]string{}}
-    manifestFile := filepath.Join(cacheDir, allmanifestfiles[0])
-    manifestFromFile, _ := manifest.ReadManifest(manifestFile)
-    for _, inputFile := range manifestFromFile.InputFile{
-        fullpath := inputFile[0]
-        if !filepath.IsAbs(fullpath){
-            fullpath = filepath.Join(config.BaseDir, fullpath)
+    manifestFile := ""
+    if utils.Exists(filepath.Join(cacheDir, "manifest.base")){
+        manifestFile = filepath.Join(cacheDir, "manifest.base")
+    }else{
+        allmanifestfiles, _ := utils.ReadDir(cacheDir, "manifest.")
+        if len(allmanifestfiles) == 0 {
+           return filepath.Join(cacheDir, "partial.base", "manifest.base"), nil
+        }else{
+            manifestFile = filepath.Join(cacheDir, allmanifestfiles[0])
+            // if symlink manifest.base is gone, create a new one
+            relativePath, _ := utils.RelativePath(cacheDir, manifestFile)
+            os.Symlink(relativePath, filepath.Join(cacheDir, "manifest.base"))
         }
-        hash, _ := manifest.GetHash(fullpath)
-        manif.InputFile = append(manif.InputFile, []string{inputFile[0], hash})
     }
     mismatch := false
     for{
-       for inputIndex, inputFile := range manifestFromFile.InputFile{
-           if manif.InputFile[inputIndex][0] != inputFile[0] ||
-              manif.InputFile[inputIndex][1] != inputFile[1]{
-                manifestFile = filepath.Join(cacheDir, "partial." + utils.HashOfFileAndHash(manif.InputFile[:inputIndex+1]),
-                                             fmt.Sprintf("manifest.%v", manif.InputFile[inputIndex][1]))
+        manif := manifest.FileManifest{InputFile:[][]string{}, OutputFile:[][]string{}}
+        fmt.Printf("Reading %s\n", manifestFile)
+        manifestFromFile, _ := manifest.ReadManifest(manifestFile)
+        for _, inputFile := range manifestFromFile.InputFile{
+            fullpath := inputFile[0]
+            if !filepath.IsAbs(fullpath){
+                fullpath = filepath.Join(config.BaseDir, fullpath)
+            }
+            hash, _ := manifest.GetHash(fullpath)
+            manif.InputFile = append(manif.InputFile, []string{inputFile[0], hash})
+        }
+        if utils.Exists(filepath.Join(cacheDir, "manifest." + utils.HashOfFileAndHash(manif.InputFile))) {
+            return filepath.Join(cacheDir, "manifest." + utils.HashOfFileAndHash(manif.InputFile)), nil
+        }
+
+        for inputIndex, inputFile := range manifestFromFile.InputFile{
+            if manif.InputFile[inputIndex][0] != inputFile[0] ||
+               manif.InputFile[inputIndex][1] != inputFile[1]{
+               listOfCurrentFile := [][]string{}
+               listOfCurrentFile = append(listOfCurrentFile, []string{manif.InputFile[inputIndex][0], manif.InputFile[inputIndex][1]})
+                if inputIndex == 0 {
+                    manifestFile = filepath.Join(cacheDir, "partial.base",
+                                                 fmt.Sprintf("manifest.%v", utils.HashOfFileAndHash(listOfCurrentFile)))
+                }else{
+                    manifestFile = filepath.Join(cacheDir, "partial." + utils.HashOfFileAndHash(manif.InputFile[:inputIndex]),
+                                                 fmt.Sprintf("manifest.%v", utils.HashOfFileAndHash(listOfCurrentFile)))
+                }
                 mismatch = true
                 break
             }
