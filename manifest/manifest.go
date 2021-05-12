@@ -124,12 +124,17 @@ func SaveManifestFile(config config.Config, logFile string, inputFileList []stri
     inputFileList = utils.RemoveFromArray(inputFileList, outputFileList)
 
     manifest := GenerateManifest(logFile, inputFileList, outputFileList, symLinks, config.BaseDir)
-    jsondata, _ := json.MarshalIndent(manifest, "", " ")
+    hashOfAllInFiles := utils.HashOfFileAndHash(manifest.InputFile)
     baseOfCacheDir := filepath.Dir(filepath.Dir(manifestFile))
-    if filepath.Base(manifestFile) == "manifest.base" {
-        manifestFile = filepath.Join(baseOfCacheDir, "partial." + utils.HashOfFileAndHash(manifest.InputFile[:1]),
-                                     "manifest." + manifest.InputFile[0][1])
+    manifestWithHash := filepath.Join(baseOfCacheDir, "manifest." + hashOfAllInFiles)
+    if utils.Exists(manifestWithHash) {
+        return manifestWithHash, nil
     }
+
+    if filepath.Base(manifestFile) == "manifest.base" {
+        manifestFile = filepath.Join(baseOfCacheDir, "manifest.base")
+    }
+
     cacheDir := filepath.Dir(manifestFile)
     if !utils.Exists(cacheDir){
         err = os.MkdirAll(cacheDir, 0775)
@@ -137,19 +142,19 @@ func SaveManifestFile(config config.Config, logFile string, inputFileList []stri
             return manifestFile, err
         }
     } 
-    err = ioutil.WriteFile(manifestFile, jsondata, 0664)
+    jsondata, _ := json.MarshalIndent(manifest, "", " ")
+    err = ioutil.WriteFile(manifestWithHash, jsondata, 0664)
     if err != nil{
         return manifestFile, err
     }
-    hashOfManifestfile, _ := GetHash(manifestFile)
+
     // make symlink
-    manifestWithHash := filepath.Join(baseOfCacheDir, "manifest." + hashOfManifestfile)
-    if !utils.Exists(manifestWithHash){
-        os.Rename(manifestFile, manifestWithHash)
+    relativePath := ""
+    if filepath.Base(manifestFile) == "manifest.base" {
+        relativePath, _ = utils.RelativePath(baseOfCacheDir, manifestWithHash)
     }else{
-        os.Remove(manifestFile)
+        relativePath, _ = utils.RelativePath(cacheDir, manifestWithHash)
     }
-    relativePath, _ := utils.RelativePath(cacheDir, manifestWithHash)
     os.Symlink(relativePath, manifestFile)
     return manifestFile, nil
 }
