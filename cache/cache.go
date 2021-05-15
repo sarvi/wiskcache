@@ -90,19 +90,19 @@ func FindManifest(config config.Config, cmdhash string)(string, error){
 func Create(config config.Config, logFile string, inFile []string, outFile []string, symLinks [][2]string, manifestfile string)(string, error){
     // create manifest file and copy outputfiles to cache
 
+    var err error
     // manifestfile is retrieved from FindManifest
     // create manifest file
     infile, _ := utils.ConverFilesToRelativePath(config, inFile)
     outfile, _ := utils.ConverFilesToRelativePath(config, outFile)
-    manifestfile, err := manifest.SaveManifestFile(config, logFile, infile, outfile, symLinks, manifestfile)
-    manifestfile, err = filepath.EvalSymlinks(manifestfile)
-    if err != nil{
-        return manifestfile, err
-    }
+    // if an output file is in inputFileList as well, remove it from inputFileList
+    infile = utils.RemoveFromArray(infile, outfile)
+    manifestdata := manifest.GenerateManifest(logFile, infile, outfile, symLinks, config.BaseDir)
+    hashOfAllInFiles := utils.HashOfFileAndHash(manifestdata.InputFile)
+    baseOfCacheDir := filepath.Dir(filepath.Dir(manifestfile))
 
     // copy outputfiles to cache
-    dirOfCachedOutputFiles := filepath.Join(filepath.Dir(manifestfile),
-                                            strings.Replace(filepath.Base(manifestfile), "manifest.", "content.", 1))
+    dirOfCachedOutputFiles := filepath.Join(baseOfCacheDir, "content." + hashOfAllInFiles)
     if !utils.Exists(dirOfCachedOutputFiles){
         err = os.MkdirAll(dirOfCachedOutputFiles, 0775)
         if err != nil{
@@ -143,7 +143,9 @@ func Create(config config.Config, logFile string, inFile []string, outFile []str
         }
     }
 
-    return manifestfile, nil
+    manifestfile, _ = manifest.SaveManifestFile(manifestdata, filepath.Join(baseOfCacheDir, "manifest." + hashOfAllInFiles),  manifestfile)
+    manifestfile, err = filepath.EvalSymlinks(manifestfile)
+    return manifestfile, err
 }
 
 func CopyOut(config config.Config, manifestFile string)(error){
