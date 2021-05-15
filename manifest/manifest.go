@@ -10,7 +10,6 @@ import (
     "encoding/json"
     "io/ioutil"
     "path/filepath"
-    "config"
     "sync"
 )
 
@@ -116,20 +115,15 @@ func ReadManifest(manifestFile string)(FileManifest, error){
     }
 }
 
-func SaveManifestFile(config config.Config, logFile string, inputFileList []string, outputFileList []string, symLinks [][2]string, manifestFile string)(string, error){
+func SaveManifestFile(manifest FileManifest, manifestWithHash string, manifestFile string)(string, error){
     // manifestFile is retrieved from cache.FindManifest
 
     var err error
-    // if an output file is in inputFileList as well, remove it from inputFileList
-    inputFileList = utils.RemoveFromArray(inputFileList, outputFileList)
 
-    manifest := GenerateManifest(logFile, inputFileList, outputFileList, symLinks, config.BaseDir)
-    hashOfAllInFiles := utils.HashOfFileAndHash(manifest.InputFile)
-    baseOfCacheDir := filepath.Dir(filepath.Dir(manifestFile))
-    manifestWithHash := filepath.Join(baseOfCacheDir, "manifest." + hashOfAllInFiles)
     if utils.Exists(manifestWithHash) {
         return manifestWithHash, nil
     }
+    baseOfCacheDir := filepath.Dir(filepath.Dir(manifestFile))
 
     if filepath.Base(manifestFile) == "manifest.base" {
         manifestFile = filepath.Join(baseOfCacheDir, "manifest.base")
